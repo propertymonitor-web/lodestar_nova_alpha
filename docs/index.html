@@ -114,7 +114,11 @@ tr.best .id::before { content: "\2605  "; color: var(--s1); }
 
 svg text { font-family: var(--font); }
 .chart { position: relative; }
-.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg { display: block; width: 100%; height: auto; overflow: hidden; }
+.chart-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -2px 0 10px; }
+.chart-controls button { border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); color: var(--muted); font: inherit; font-size: 12px; padding: 4px 8px; cursor: pointer; }
+.chart-controls button:hover, .chart-controls button:focus-visible { color: var(--ink); border-color: var(--s1); }
+.chart-controls span { color: var(--muted); font-size: 12px; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 13px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.18); white-space: nowrap; z-index: 3; transform: translate(-50%, -110%); }
 .tip[hidden] { display: none; }
 
@@ -871,11 +875,14 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 .mcard.wide { grid-column: 1 / -1; }
 .mcard h3 { margin: 0 0 6px; font: 600 15px var(--font-d); }
 .mcard h3 .note { margin-left: 8px; font-weight: 400; }
+.mcard h3 select { margin-left: 6px; font-size: 12px; vertical-align: 1px; }
 #mLegend .sw { border-radius: 50%; margin-right: 4px; vertical-align: -2px; }
 .mcard h3.sub { margin-top: 14px; }
 .mcard canvas { width: 100%; display: block; }
+.mtrend-scroll { overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 3px; }
+.mtrend-scroll canvas { max-width: none; }
 .mhover { margin: 6px 0 0; min-height: 1.3em; font: 500 13px var(--font); color: var(--ink2); }
-.mbars .mrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 48px; align-items: center; gap: 8px; margin: 3px 0; font: 500 13px var(--font); }
+.mbars .mrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 76px; align-items: center; gap: 8px; margin: 3px 0; font: 500 13px var(--font); }
 .mbars .mtrack { height: 12px; background: var(--grid); border-radius: 6px; overflow: hidden; }
 .mbars .mfill { height: 100%; border-radius: 6px; min-width: 2px; }
 .mbars .mrow em { font-style: normal; text-align: right; color: var(--ink2); }
@@ -927,10 +934,15 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
     <h2>Mesh analyzer <span class="note" id="meshNote">every packet this radio hears, live &middot; LODESTAR ORION + Mesh Analyzer firmware</span></h2>
     <div class="mtiles" id="mTiles"></div>
     <div class="mbar">
-      <ul class="chips" id="mLegend" aria-label="Packet types"></ul>
       <span class="spacer"></span>
       <label for="mWin">Show</label>
       <select id="mWin"><option value="60000">1 minute</option><option value="300000" selected>5 minutes</option><option value="900000">15 minutes</option><option value="3600000">1 hour</option></select>
+      <label for="mScale">Scale</label>
+      <select id="mScale" aria-label="Signal chart scale"><option value="auto" selected>Automatic</option><option value="reference">Reference range</option></select>
+      <label for="mHistory">History</label>
+      <select id="mHistory" aria-label="Traffic history window"><option value="clock" selected>Clock-aligned</option><option value="rolling">Rolling</option></select>
+      <label for="mSort">Traffic sort</label>
+      <select id="mSort" aria-label="Traffic bar sorting"><option value="count" selected>Most frequent</option><option value="type">Packet type</option></select>
       <button id="mPause" aria-pressed="false">Pause</button>
       <button id="mCsv">Save CSV</button>
       <button id="mClear">Clear</button>
@@ -943,8 +955,18 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
         <canvas id="mQual" data-h="230" role="img" aria-label="Signal strength against SNR"></canvas></div>
       <div class="mcard"><h3>What is on the air <span class="note" id="mTypeNote"></span></h3>
         <div class="mbars" id="mTypes"></div>
-        <h3 class="sub">Hops the packets travelled</h3>
+        <h3 class="sub">Composition <select id="mComposition" aria-label="Traffic composition measure"><option value="packets" selected>Packets</option><option value="airtime">Observed airtime</option></select></h3>
+        <canvas id="mPie" data-h="190" role="img" aria-label="Traffic composition pie chart"></canvas>
+        <p class="note" id="mPieNote"></p></div>
+      <div class="mcard"><h3>Hops the packets travelled</h3>
         <div class="mbars" id="mHops"></div></div>
+      <div class="mcard wide"><h3>Traffic history <span class="note" id="mHistoryNote">clock-aligned packet bins; scroll for older history</span></h3>
+        <div class="mtrend-scroll"><canvas id="mTraffic" data-h="230" data-bins="72" role="img" aria-label="Packet traffic history, stacked by packet type"></canvas></div>
+        <h3 class="sub">Observed / estimated free airtime <span class="note">decoded packet airtime only</span></h3>
+        <div class="mtrend-scroll"><canvas id="mAirtime" data-h="200" data-bins="72" role="img" aria-label="Observed and estimated free airtime history"></canvas></div>
+        <p class="note" id="mAirNote"></p>
+        <h3 class="sub">Hop history <span class="note">stacked by path length</span></h3>
+        <div class="mtrend-scroll"><canvas id="mHopTrend" data-h="200" data-bins="72" role="img" aria-label="Packet hop history, stacked by hop count"></canvas></div></div>
       <div class="mcard wide"><h3>Who this radio hears <span class="note">the node each packet came from: the last repeater on its path, or the sender itself for a direct advert</span></h3>
         <div class="mscroll"><table class="mtable" id="mSrc"><thead><tr><th>Heard from</th><th class="n">Packets</th><th class="n">Last</th><th class="n">Avg dBm</th><th class="n">Best dBm</th><th class="n">Avg SNR</th><th>Strength</th></tr></thead><tbody></tbody></table></div></div>
     </div>
@@ -986,18 +1008,21 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 
       <section class="panel">
         <h2>Uplink score over time <span class="note">this page keeps the last 15 minutes</span></h2>
+        <div class="chart-controls" aria-label="Uplink score chart controls">
+          <button type="button" id="scoreZoomOut" aria-label="Zoom out score chart">−</button>
+          <button type="button" id="scoreZoomIn" aria-label="Zoom in score chart">+</button>
+          <button type="button" id="scoreReset">Last 15 min</button>
+          <span>Scroll to zoom · drag to pan</span>
+        </div>
         <ul class="chips" id="scoreLegend" aria-label="Legend"></ul>
         <div class="chart" id="scoreChart"></div>
       </section>
 
       <section class="panel">
-        <h2>Battery, last 4 hours</h2>
+        <h2>Battery history <span class="note">up to 4 hours; resets when charging changes</span></h2>
         <div class="chart" id="batChart"></div>
         <p class="legend-note" id="batNote"></p>
       </section>
-    </div>
-
-    <div class="col">
       <section class="panel">
         <h2>Trip map <span class="note" id="tripNote"></span></h2>
         <div class="mapbar">
@@ -1013,36 +1038,9 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
         <p class="legend-note"><span class="sw sw-you"></span> you and the route you drove &nbsp; <span class="sw sw-rep"></span> repeater &nbsp; <span class="sw sw-comp"></span> companion &nbsp; <span class="sw sw-cov"></span> last place with a usable repeater. A faded marker means the node did not announce its position, so it is shown where you heard it. Map data &copy; OpenStreetMap contributors, tiles by CARTO (or OpenStreetMap if you pick it); the map needs an internet connection.</p>
       </section>
 
-      <section class="panel">
-        <h2>Nodes found <span class="note" id="foundNote"></span></h2>
-        <p class="counts" id="foundCounts"></p>
-        <p class="empty" id="foundEmpty">Nothing found yet. Repeaters and companions appear as their adverts are heard. A node shows on the map at the position it announces, or where you heard it.</p>
-        <div class="found-actions">
-          <button id="btnCsv" disabled>Download list (CSV)</button>
-          <button id="btnGeo" disabled>Download map file (GeoJSON)</button>
-          <button id="btnGpx" disabled>Download route + nodes (GPX)</button>
-          <button id="btnClearFound" disabled>Clear found list</button>
-        </div>
-        <p class="hint">These files contain other people's radio names and the places they announce. Keep them private. The page remembers your route and list in this browser until you clear them.</p>
-      </section>
+    </div>
 
-      <section class="panel" id="offPanel">
-        <h2>Offline maps <span class="note" id="offNote"></span></h2>
-        <p class="hint">No signal on the road? Download a region once, at home, load it here, and the map works with no internet. The file stays in this browser.</p>
-        <div class="row off-row">
-          <label for="regSel">Region</label>
-          <select id="regSel" aria-label="Region to download"><option value="">Loading the list...</option></select>
-          <a id="regDl" class="btnlink" href="#" target="_blank" rel="noopener" aria-disabled="true">Download</a>
-        </div>
-        <p class="hint" id="regNote"></p>
-        <div class="row off-row">
-          <label for="mapFile">Load a map file</label>
-          <input type="file" id="mapFile" accept=".pmtiles" multiple>
-        </div>
-        <ul class="offlist" id="offList"></ul>
-        <p class="hint">Download the file with the button, then choose it with "Load a map file". Maps come from OpenStreetMap data (&copy; OpenStreetMap contributors, ODbL), built by Protomaps. Large regions are big files (hundreds of megabytes) and need that much free space in the browser.</p>
-      </section>
-
+    <div class="col">
       <section class="panel">
         <h2>Messages you sent</h2>
         <p class="counts" id="dlCounts"></p>
@@ -1080,6 +1078,35 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
         <h2>Radio diagnostics</h2>
         <dl class="dgrid" id="diag"></dl>
         <details><summary>Latest raw data</summary><pre class="raw" id="raw">Nothing received yet.</pre></details>
+      </section>
+      <section class="panel">
+        <h2>Nodes found <span class="note" id="foundNote"></span></h2>
+        <p class="counts" id="foundCounts"></p>
+        <p class="empty" id="foundEmpty">Nothing found yet. Repeaters and companions appear as their adverts are heard. A node shows on the map at the position it announces, or where you heard it.</p>
+        <div class="found-actions">
+          <button id="btnCsv" disabled>Download list (CSV)</button>
+          <button id="btnGeo" disabled>Download map file (GeoJSON)</button>
+          <button id="btnGpx" disabled>Download route + nodes (GPX)</button>
+          <button id="btnClearFound" disabled>Clear found list</button>
+        </div>
+        <p class="hint">These files contain other people's radio names and the places they announce. Keep them private. The page remembers your route and list in this browser until you clear them.</p>
+      </section>
+
+      <section class="panel" id="offPanel">
+        <h2>Offline maps <span class="note" id="offNote"></span></h2>
+        <p class="hint">No signal on the road? Download a region once, at home, load it here, and the map works with no internet. The file stays in this browser.</p>
+        <div class="row off-row">
+          <label for="regSel">Region</label>
+          <select id="regSel" aria-label="Region to download"><option value="">Loading the list...</option></select>
+          <a id="regDl" class="btnlink" href="#" target="_blank" rel="noopener" aria-disabled="true">Download</a>
+        </div>
+        <p class="hint" id="regNote"></p>
+        <div class="row off-row">
+          <label for="mapFile">Load a map file</label>
+          <input type="file" id="mapFile" accept=".pmtiles" multiple>
+        </div>
+        <ul class="offlist" id="offList"></ul>
+        <p class="hint">Download the file with the button, then choose it with "Load a map file". Maps come from OpenStreetMap data (&copy; OpenStreetMap contributors, ODbL), built by Protomaps. Large regions are big files (hundreds of megabytes) and need that much free space in the browser.</p>
       </section>
     </div>
   </div>
@@ -1149,6 +1176,7 @@ const S = {
   frame: null, frames: [], hist: [],          // hist: {t, best, scores:{id:score}}
   lastAt: 0, mode: "off", port: null, reader: null, writer: null, keep: null, demo: null,
   colorOf: {}, nextColor: 0,
+  scoreView: { minutes: 15, end: 0, panning: false },
 };
 const SERIES = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6"];
 function colorFor(id) { if (!(id in S.colorOf)) S.colorOf[id] = SERIES[S.nextColor++ % SERIES.length]; return S.colorOf[id]; }   // color follows the repeater, not its rank
@@ -1288,7 +1316,8 @@ function onMeshLine(line) {
   MESH.dirty = true;
 }
 function mcanvas(id) {
-  const c = $(id), w = Math.max(160, Math.round(c.getBoundingClientRect().width)), h = +c.dataset.h || 220, d = window.devicePixelRatio || 1;
+  const c = $(id), bins = +c.dataset.bins || 0, parentW = c.parentElement.getBoundingClientRect().width, w = Math.max(160, Math.round(bins ? Math.max(parentW, 42 + bins * 48) : parentW)), h = +c.dataset.h || 220, d = window.devicePixelRatio || 1;
+  c.style.width = w + "px";
   if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
   c.style.height = h + "px";
   const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h);
@@ -1297,7 +1326,7 @@ function mcanvas(id) {
 const mfmtT = (ms) => { const d = new Date(ms); return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
 function meshDraw() {
   if (MESH.paused || $("meshPanel").hidden) return;
-  const now = Date.now(), win = +$("mWin").value || 300000, from = now - win;
+  const now = Date.now(), win = +$("mWin").value || 300000, from = now - win, autoScale = $("mScale").value === "auto";
   const rx = MESH.recs.filter((r) => !r.tx && r.t >= from), txr = MESH.recs.filter((r) => r.tx && r.t >= from);
   const ink = css("--ink2"), mut = css("--muted"), grid = css("--grid"), bad = css("--bad");
   // ---- tiles
@@ -1313,16 +1342,16 @@ function meshDraw() {
     tile("Signal", aR == null ? "&ndash;" : Math.round(aR), aR == null ? "" : "dBm avg", best == null ? "nothing in the last minute" : "best " + best + " dBm") +
     tile("Clarity", aS == null ? "&ndash;" : aS.toFixed(1), aS == null ? "" : "dB SNR", MESH.cfg.sf ? "SF" + MESH.cfg.sf + " can decode down to " + (SNR_LIMIT[MESH.cfg.sf] != null ? SNR_LIMIT[MESH.cfg.sf] : "?") + " dB" : "average of the last minute") +
     tile("Noise floor", nf == null ? "&ndash;" : nf, nf == null ? "" : "dBm", aR != null && nf != null ? "signal sits " + Math.round(aR - nf) + " dB above it" : "the quiet level of the channel") +
-    tile("Channel busy", (busyRx + busyTx).toFixed(1), "%", "hearing " + busyRx.toFixed(1) + "%, sending " + busyTx.toFixed(1) + "%") +
+    tile("Observed airtime", (busyRx + busyTx).toFixed(1), "%", "heard " + busyRx.toFixed(1) + "% + sent " + busyTx.toFixed(1) + "% · not a spectrum reading") +
+    tile("Free-airtime estimate", Math.max(0, 100 - busyRx - busyTx).toFixed(1), "%", "last minute · 100% minus decoded heard + sent packet time") +
     tile("Nodes", srcs10, "heard", "different senders or repeaters, last 10 min");
-  // ---- legend
+  // ---- packet types; the coloured bars are also the composition key.
   const counts = {}; rx.forEach((r) => { counts[r.type] = (counts[r.type] || 0) + 1; });
-  const types = Object.keys(counts).map(Number).sort((a, b) => counts[b] - counts[a]);
-  $("mLegend").innerHTML = types.map((t) => '<li><span class="sw" style="background:' + mcol(t) + '"></span>' + MTYPE[t] + " " + counts[t] + "</li>").join("") + (txr.length ? '<li><span class="sw" style="background:transparent;border:2px solid ' + ink + '"></span>Sent ' + txr.length + "</li>" : "");
+  const types = Object.keys(counts).map(Number).sort($("mSort").value === "type" ? (a, b) => a - b : (a, b) => counts[b] - counts[a]);
   // ---- signal over time
   { const { g, w, h } = mcanvas("mTime"), L = 46, R = 10, T = 8, B = 24;
     let lo = -130, hi = -40;
-    if (rx.length) { const mn = Math.min.apply(null, rx.map((r) => r.rssi)), mx = Math.max.apply(null, rx.map((r) => r.rssi)); lo = Math.min(lo, Math.floor(mn / 10) * 10 - 10); hi = Math.max(hi, Math.ceil(mx / 10) * 10 + 5); }
+    if (autoScale && rx.length) { const mn = Math.min.apply(null, rx.map((r) => r.rssi)), mx = Math.max.apply(null, rx.map((r) => r.rssi)); lo = Math.floor((mn - 8) / 10) * 10; hi = Math.ceil((mx + 8) / 10) * 10; if (hi - lo < 30) { const mid = (hi + lo) / 2; lo = Math.floor((mid - 15) / 10) * 10; hi = lo + 30; } }
     const X = (t) => L + (t - from) / win * (w - L - R), Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (h - T - B);
     g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
     for (let v = Math.ceil(lo / 10) * 10; v <= hi; v += 10) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
@@ -1339,24 +1368,74 @@ function meshDraw() {
     txr.forEach((r) => { const x = X(r.t); g.beginPath(); g.moveTo(x, h - B - 9); g.lineTo(x, h - B); g.stroke(); MESH.hit.push({ x, y: h - B - 4, r }); });
     if (!rx.length) { g.fillStyle = mut; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "14px " + css("--font"); g.fillText(MESH.recs.length ? "Nothing heard in this window." : "Waiting for the radio to hear something…", w / 2, h / 2); } }
   // ---- quality map
-  { const { g, w, h } = mcanvas("mQual"), L = 40, R = 10, T = 8, B = 34, x0 = -130, x1 = -40, y0 = -25, y1 = 15;
+  { const { g, w, h } = mcanvas("mQual"), L = 40, R = 10, T = 8, B = 34;
+    let x0 = -130, x1 = -40, y0 = -25, y1 = 15;
+    if (autoScale && rx.length) {
+      const r0 = Math.min.apply(null, rx.map((r) => r.rssi)), r1 = Math.max.apply(null, rx.map((r) => r.rssi)), s0 = Math.min.apply(null, rx.map((r) => r.snr)), s1 = Math.max.apply(null, rx.map((r) => r.snr));
+      x0 = Math.floor((r0 - 8) / 10) * 10; x1 = Math.ceil((r1 + 8) / 10) * 10; if (x1 - x0 < 30) { const mid = (x0 + x1) / 2; x0 = Math.floor((mid - 15) / 10) * 10; x1 = x0 + 30; }
+      y0 = Math.floor((s0 - 3) / 5) * 5; y1 = Math.ceil((s1 + 3) / 5) * 5; if (y1 - y0 < 15) { const mid = (y0 + y1) / 2; y0 = Math.floor((mid - 7.5) / 5) * 5; y1 = y0 + 15; }
+    }
     const X = (v) => L + (v - x0) / (x1 - x0) * (w - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (h - T - B);
     g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
-    for (let v = -20; v <= 10; v += 10) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
+    const yStep = Math.max(5, Math.ceil((y1 - y0) / 4 / 5) * 5);
+    for (let v = Math.ceil(y0 / yStep) * yStep; v <= y1; v += yStep) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
     g.textAlign = "center"; g.textBaseline = "top";
-    for (let v = -120; v <= -50; v += 20) { g.beginPath(); g.moveTo(X(v) + .5, T); g.lineTo(X(v) + .5, h - B); g.stroke(); g.fillText(v, X(v), h - B + 6); }
+    const xStep = Math.max(10, Math.ceil((x1 - x0) / 4 / 10) * 10);
+    for (let v = Math.ceil(x0 / xStep) * xStep; v <= x1; v += xStep) { g.beginPath(); g.moveTo(X(v) + .5, T); g.lineTo(X(v) + .5, h - B); g.stroke(); g.fillText(v, X(v), h - B + 6); }
     g.fillText("signal strength (dBm)", (L + w - R) / 2, h - 12); g.save(); g.translate(10, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText("SNR (dB)", 0, 0); g.restore();
     const lim = SNR_LIMIT[MESH.cfg.sf]; if (lim != null) { g.strokeStyle = bad; g.lineWidth = 1.5; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(lim)); g.lineTo(w - R, Y(lim)); g.stroke(); g.setLineDash([]); }
     rx.slice(-400).forEach((r) => { g.fillStyle = mcol(r.type); g.globalAlpha = .75; g.beginPath(); g.arc(Math.max(L, Math.min(w - R, X(r.rssi))), Math.max(T, Math.min(h - B, Y(r.snr))), 3.2, 0, 6.2832); g.fill(); });
     g.globalAlpha = 1; }
   // ---- bars
-  const bar = (label, n, max, col) => '<div class="mrow"><span>' + label + '</span><div class="mtrack"><div class="mfill" style="width:' + Math.max(1, Math.round(n / (max || 1) * 100)) + "%;background:" + col + '"></div></div><em>' + n + "</em></div>";
+  const bar = (label, n, max, col, shown) => '<div class="mrow"><span>' + label + '</span><div class="mtrack"><div class="mfill" style="width:' + Math.max(1, Math.round(n / (max || 1) * 100)) + "%;background:" + col + '"></div></div><em>' + (shown == null ? n : shown) + "</em></div>";
   const tmax = types.length ? counts[types[0]] : 1;
-  $("mTypes").innerHTML = types.length ? types.map((t) => bar(MTYPE[t], counts[t], tmax, mcol(t))).join("") : '<p class="note">Nothing yet.</p>';
+  $("mTypes").innerHTML = types.length ? types.map((t) => bar(MTYPE[t], counts[t], tmax, mcol(t), counts[t] + " / " + Math.round(counts[t] / rx.length * 100) + "%")).join("") : '<p class="note">Nothing yet.</p>';
   $("mTypeNote").textContent = rx.length + " packets in this window";
+  // The pie shares the packet-type legend. Airtime is an observed estimate from decoded packet lengths.
+  { const mode = $("mComposition").value, pie = types.slice(0, 7); if (types.length > 7) pie.push(-1); const values = pie.map((t) => mode === "airtime" ? rx.filter((r) => t < 0 ? pie.indexOf(r.type) < 0 : r.type === t).reduce((n, r) => n + airtimeMs(r.len, MESH.cfg), 0) : (t < 0 ? types.slice(7).reduce((n, k) => n + counts[k], 0) : counts[t]));
+    const total = values.reduce((n, v) => n + v, 0), { g, w, h } = mcanvas("mPie"), cx = Math.min(w * .35, 120), cy = h / 2, rad = Math.min(68, h / 2 - 12); let a = -Math.PI / 2;
+    if (total) { values.forEach((v, i) => { const z = v / total * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, rad, a, a + z); g.closePath(); g.fillStyle = mcol(pie[i]); g.fill(); a += z; });
+      g.fillStyle = css("--panel"); g.beginPath(); g.arc(cx, cy, rad * .54, 0, Math.PI * 2); g.fill(); g.fillStyle = ink; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "600 15px " + css("--font-d"); g.fillText(mode === "airtime" ? (total / 1000).toFixed(1) + " s" : total, cx, cy - 8); g.font = "12px " + css("--font"); g.fillStyle = mut; g.fillText(mode === "airtime" ? "heard airtime" : "packets", cx, cy + 11);
+      // The type bars above are the legend; keep the pie itself deliberately quiet.
+    } else { g.fillStyle = mut; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("Waiting for packets…", w / 2, h / 2); }
+    $("mPieNote").textContent = mode === "airtime" ? "Decoded packet length + radio settings estimate airtime heard by this radio; it is not a spectrum measurement or a duty-cycle allowance." : "Share of decoded packets heard by this radio in the selected window.";
+  }
   const hc = [0, 0, 0, 0, 0, 0, 0]; rx.forEach((r) => { hc[Math.min(6, r.hops)]++; });
   const hm = Math.max.apply(null, hc.concat([1]));
   $("mHops").innerHTML = hc.map((n, i) => bar(i === 0 ? "direct" : i === 6 ? "6 or more" : i + (i === 1 ? " hop" : " hops"), n, hm, css("--s1"))).join("");
+  // ---- retained history: 72 fixed bins survive a clock boundary and scroll horizontally.
+  // These remain packet observations, not a measurement of all RF activity.
+  const histClock = $("mHistory").value === "clock", histBins = 72, binMs = win / 12;
+  const histTo = histClock ? Math.floor(now / binMs) * binMs + binMs : now, histFrom = histTo - histBins * binMs;
+  const histRx = MESH.recs.filter((r) => !r.tx && r.t >= histFrom && r.t < histTo);
+  $("mHistoryNote").textContent = (histClock ? "clock-aligned" : "rolling") + " " + Math.round(binMs / 1000) + " s bins; scroll for older history";
+  const trend = (id, hgt, key, label, colour) => {
+    const { g, w, h } = mcanvas(id), L = 34, R = 34, T = 8, B = 54, bins = histBins;
+    const sets = Array.from({ length: bins }, () => ({}));
+    histRx.forEach((r) => { const i = Math.max(0, Math.min(bins - 1, Math.floor((r.t - histFrom) / binMs))); const k = key(r); sets[i][k] = (sets[i][k] || 0) + 1; });
+    const tops = sets.map((b) => Object.values(b).reduce((n, v) => n + v, 0)), top = Math.max(1, ...tops), step = Math.max(1, Math.ceil(top / 4));
+    const Y = (v) => T + (1 - v / (step * 4)) * (h - T - B), bw = (w - L - R) / bins;
+    g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
+    for (let v = 0; v <= step * 4; v += step) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 5, Y(v)); g.textAlign = "left"; g.fillText(v, w - R + 5, Y(v)); g.textAlign = "right"; }
+    sets.forEach((b, i) => { let base = 0; Object.keys(b).sort((a, z) => +a - +z).forEach((k) => { const n = b[k], y = Y(base + n); g.fillStyle = colour(+k); g.fillRect(L + i * bw + 1, y, Math.max(1, bw - 2), Y(base) - y); base += n; }); });
+    g.fillStyle = mut; g.font = "11px " + css("--font"); g.textAlign = "right"; g.textBaseline = "middle";
+    for (let i = 0; i < bins; i++) { const t = histFrom + i * binMs, x = L + (i + .5) * bw; g.save(); g.translate(x + 5, h - B + 8); g.rotate(-Math.PI / 3); g.fillText(mfmtT(t), 0, 0); g.restore(); }
+    g.textAlign = "left"; g.textBaseline = "top"; g.fillText(label, L + 4, T + 3);
+  };
+  trend("mTraffic", 210, (r) => r.type, "packets", (k) => mcol(k));
+  // Airtime uses every decoded record (heard and sent); grey is the remainder of that bin, not measured RF silence.
+  { const { g, w, h } = mcanvas("mAirtime"), L = 34, R = 34, T = 8, B = 54, bins = histBins, ms = Array(bins).fill(0);
+    MESH.recs.filter((r) => r.t >= histFrom && r.t < histTo).forEach((r) => { const i = Math.max(0, Math.min(bins - 1, Math.floor((r.t - histFrom) / binMs))); ms[i] += airtimeMs(r.len, MESH.cfg); });
+    const Y = (v) => T + (1 - v / 100) * (h - T - B), bw = (w - L - R) / bins;
+    g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
+    [0, 50, 100].forEach((v) => { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v + "%", L - 5, Y(v)); g.textAlign = "left"; g.fillText(v + "%", w - R + 5, Y(v)); g.textAlign = "right"; });
+    ms.forEach((v, i) => { const p = Math.max(0, Math.min(100, v / binMs * 100)), x = L + i * bw + 1; g.fillStyle = grid; g.fillRect(x, T, Math.max(1, bw - 2), h - T - B); g.fillStyle = css("--s1"); g.fillRect(x, Y(p), Math.max(1, bw - 2), Y(0) - Y(p)); });
+    g.fillStyle = mut; g.font = "11px " + css("--font"); g.textAlign = "right"; g.textBaseline = "middle";
+    for (let i = 0; i < bins; i++) { const x = L + (i + .5) * bw; g.save(); g.translate(x + 5, h - B + 8); g.rotate(-Math.PI / 3); g.fillText(mfmtT(histFrom + i * binMs), 0, 0); g.restore(); }
+    g.textAlign = "left"; g.textBaseline = "top"; g.fillText("observed", L + 4, T + 3);
+    $("mAirNote").textContent = MESH.cfg.sf && MESH.cfg.bw ? "Blue is decoded packet airtime heard + sent; grey is the remaining estimate. Missed/colliding/other-radio traffic is not visible, so this is not a spectrum or compliance meter." : "Airtime estimate needs the radio's spreading factor and bandwidth.";
+  }
+  trend("mHopTrend", 180, (r) => Math.min(6, r.hops), "packets", (k) => k === 0 ? css("--s3") : css("--s1"));
   // ---- who we hear
   const by = new Map();
   rx.forEach((r) => { const k = r.id || "direct"; let e = by.get(k); if (!e) { e = { k, n: 0, last: 0, sum: 0, best: -999, snr: 0 }; by.set(k, e); } e.n++; e.last = Math.max(e.last, r.t); e.sum += r.rssi; e.best = Math.max(e.best, r.rssi); e.snr += r.snr; });
@@ -1374,6 +1453,10 @@ function meshCsv() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = "mesh-analyzer-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".csv"; document.body.appendChild(a); a.click(); a.remove();
 }
 $("mWin").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mScale").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mHistory").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mComposition").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mSort").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
 $("mPause").addEventListener("click", () => { MESH.paused = !MESH.paused; $("mPause").setAttribute("aria-pressed", MESH.paused); $("mPause").textContent = MESH.paused ? "Resume" : "Pause"; if (!MESH.paused) meshDraw(); });
 $("mCsv").addEventListener("click", meshCsv);
 $("mClear").addEventListener("click", () => { MESH.recs = []; MESH.nf = []; MESH.dirty = true; meshDraw(); });
@@ -1466,6 +1549,9 @@ function lineChart(host, o) {
   const any = o.series.some((s) => s.pts.length > 1);
   const svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": o.label });
   host.appendChild(svg);
+  const clipId = "plot-" + Math.random().toString(36).slice(2);
+  const defs = el("defs", {}, svg), clip = el("clipPath", { id: clipId }, defs);
+  el("rect", { x: L, y: T, width: W - L - R, height: H - T - B }, clip);
   const X = (x) => L + (x - o.xmin) / (o.xmax - o.xmin || 1) * (W - L - R);
   const Y = (y) => T + (1 - (y - o.ymin) / (o.ymax - o.ymin || 1)) * (H - T - B);
   o.yticks.forEach((v) => {
@@ -1476,13 +1562,14 @@ function lineChart(host, o) {
     const t = el("text", { x: X(v), y: H - 6, "text-anchor": v === o.xmin ? "start" : v === o.xmax ? "end" : "middle", "font-size": 12, fill: css("--muted") }, svg); t.textContent = o.xfmt(v);
   });
   if (!any) { const t = el("text", { x: W / 2, y: H / 2, "text-anchor": "middle", "font-size": 14, fill: css("--muted") }, svg); t.textContent = o.emptyText; return; }
+  const plot = el("g", { "clip-path": "url(#" + clipId + ")" }, svg);
   o.series.forEach((s) => {
     if (s.pts.length < 2) return;
-    el("polyline", { points: s.pts.map((p) => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" "), fill: "none", stroke: css(s.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    el("polyline", { points: s.pts.map((p) => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" "), fill: "none", stroke: css(s.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, plot);
   });
   // hover layer: a crosshair and a tooltip with every series at that moment
-  const cross = el("line", { y1: T, y2: H - B, stroke: css("--muted"), "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" }, svg);
-  const dots = o.series.map((s) => el("circle", { r: 4, fill: css(s.color), stroke: css("--panel"), "stroke-width": 2, visibility: "hidden" }, svg));
+  const cross = el("line", { y1: T, y2: H - B, stroke: css("--muted"), "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" }, plot);
+  const dots = o.series.map((s) => el("circle", { r: 4, fill: css(s.color), stroke: css("--panel"), "stroke-width": 2, visibility: "hidden" }, plot));
   const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent", style: "touch-action:pan-y" }, svg);
   const tip = $("tip");
   const move = (ev) => {
@@ -1506,19 +1593,52 @@ function lineChart(host, o) {
     tip.hidden = false;
   };
   const leave = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); dots.forEach((d) => d.setAttribute("visibility", "hidden")); };
-  hit.addEventListener("pointermove", move); hit.addEventListener("pointerleave", leave);
+  let drag = null;
+  const finishDrag = (commit) => {
+    if (!drag) return;
+    const end = drag.end;
+    drag = null; plot.removeAttribute("transform"); hit.style.cursor = "grab";
+    if (o.onPanEnd) o.onPanEnd();
+    if (commit && o.onPan) o.onPan(end);
+  };
+  hit.addEventListener("pointermove", (ev) => {
+    if (drag && o.onPan) {
+      const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+      const dx = px - drag.px;
+      drag.end = drag.baseEnd - dx / (W - L - R) * (o.xmax - o.xmin);
+      // Keep this SVG alive for the whole gesture: incoming samples are buffered until release.
+      plot.setAttribute("transform", "translate(" + dx.toFixed(1) + " 0)");
+      return;
+    }
+    move(ev);
+  });
+  hit.addEventListener("pointerleave", () => { if (!drag) leave(); });
+  if (o.onPan) {
+    hit.style.cursor = "grab";
+    hit.addEventListener("pointerdown", (ev) => { const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W; drag = { px, end: o.xmax, baseEnd: o.xmax }; hit.setPointerCapture(ev.pointerId); hit.style.cursor = "grabbing"; tip.hidden = true; if (o.onPanStart) o.onPanStart(); });
+    hit.addEventListener("pointerup", () => finishDrag(true));
+    hit.addEventListener("pointercancel", () => finishDrag(false));
+    hit.addEventListener("wheel", (ev) => { ev.preventDefault(); o.onZoom((o.xmax - o.xmin) * (ev.deltaY < 0 ? .75 : 1.333)); }, { passive: false });
+  }
 }
 
 function renderScoreChart() {
-  const h = S.hist, now = Date.now();
+  const h = S.hist, now = Date.now(), maxMinutes = 15;
+  const view = S.scoreView;
+  if (view.panning) return; // retain the current SVG and its pointer capture until release
+  view.minutes = Math.max(0.5, Math.min(maxMinutes, view.minutes));
+  view.end = Math.min(0, Math.max(-maxMinutes + view.minutes, view.end));
   const ids = []; h.forEach((x) => Object.keys(x.scores).forEach((id) => { if (ids.indexOf(id) < 0) ids.push(id); }));
   // keep the 4 that were strongest most recently, so the chart stays readable
   const last = h.length ? h[h.length - 1].scores : {};
   const shown = ids.sort((a, b) => (last[b] || 0) - (last[a] || 0)).slice(0, 4);
   const series = shown.map((id) => ({ name: id, color: colorFor(id), pts: h.filter((x) => id in x.scores).map((x) => [(x.t - now) / 60000, x.scores[id]]) }));
   $("scoreLegend").innerHTML = shown.map((id) => '<li><i style="background:var(' + colorFor(id) + ')"></i>' + esc(id) + "</li>").join("") + (ids.length > 4 ? "<li>and " + (ids.length - 4) + " weaker</li>" : "");
-  lineChart($("scoreChart"), { label: "Score of the strongest repeaters over the last 15 minutes", series, xmin: -15, xmax: 0, ymin: 0, ymax: 100,
-    yticks: [0, 25, 50, 75, 100], yfmt: (v) => String(Math.round(v)), xticks: [-15, -10, -5, 0], xfmt: (v) => (v === 0 ? "now" : Math.abs(Math.round(v)) + " min ago"), emptyText: "Collecting data. This fills in as frames arrive." });
+  const span = view.minutes, xmin = view.end - span, xticks = [xmin, xmin + span / 2, view.end];
+  lineChart($("scoreChart"), { label: "Score of the strongest repeaters over the selected time window", series, xmin, xmax: view.end, ymin: 0, ymax: 100,
+    yticks: [0, 25, 50, 75, 100], yfmt: (v) => String(Math.round(v)), xticks, xfmt: (v) => (v >= -0.05 ? "now" : Math.abs(v).toFixed(span < 2 ? 1 : 0) + " min ago"), emptyText: "Collecting data. This fills in as frames arrive.",
+    onPanStart: () => { S.scoreView.panning = true; }, onPanEnd: () => { S.scoreView.panning = false; },
+    onPan: (end) => { S.scoreView.end = end; renderScoreChart(); }, onZoom: (minutes) => { S.scoreView.minutes = minutes; renderScoreChart(); } });
 }
 
 function renderBatt(b) {
@@ -2087,6 +2207,9 @@ setInterval(() => {
   }
 }, 1000);
 
+$("scoreZoomIn").addEventListener("click", () => { S.scoreView.minutes *= .75; renderScoreChart(); });
+$("scoreZoomOut").addEventListener("click", () => { S.scoreView.minutes *= 1.333; renderScoreChart(); });
+$("scoreReset").addEventListener("click", () => { S.scoreView = { minutes: 15, end: 0, panning: false }; renderScoreChart(); });
 $("btnConnect").addEventListener("click", () => { if (S.mode === "serial") disconnect(false); else connect(); });
 $("btnDemo").addEventListener("click", () => { if (S.demo) { stopDemo(); } else startDemo(); $("btnDemo").textContent = S.demo ? "Stop sample data" : "Try sample data"; });
 $("btnSave").addEventListener("click", () => {

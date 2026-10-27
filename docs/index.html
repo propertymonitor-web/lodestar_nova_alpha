@@ -2411,6 +2411,8 @@ function buildScene() {
   gm.save(); gm.clip(); gm.strokeStyle = "rgba(255,255,255,.11)"; gm.lineWidth = 2;
   for (let r = 0; r < 12; r++) { gm.beginPath(); const y0 = 650 + r * 6; for (let x = 0; x <= W; x += 10) { const yy = y0 + 3 * Math.sin(x * 0.04 + r * 1.7 + rs()); x ? gm.lineTo(x, yy) : gm.moveTo(x, yy); } gm.stroke(); }
   gm.restore();
+  const ao = (g2, x, y, rx, a) => { g2.save(); g2.translate(x, y); g2.scale(1, 0.18); g2.fillStyle = rg(g2, 0, 0, 0, rx, [[0, "rgba(0,12,22," + a + ")"], [0.6, "rgba(0,12,22," + a * 0.5 + ")"], [1, "rgba(0,12,22,0)"]]); g2.beginPath(); g2.arc(0, 0, rx, 0, TAU); g2.fill(); g2.restore(); };
+  ao(gm, wx + wr.WW / 2 + 10, floorY(wx + wr.WW / 2) - 20, wr.WW * 0.62, 0.55);
   const wl = wx - 20, wr2 = wx + wr.WW + 20;
   const free = () => { for (let k = 0; k < 20; k++) { const x = rs() * (W - 120) + 60; if (x < wl || x > wr2) return x; } return rs() < 0.5 ? 60 : W - 60; };
   const sizes = () => 0.8 + rs() * 0.5;
@@ -2419,7 +2421,7 @@ function buildScene() {
   if (rs() < 0.65) { const x = free(); const y = floorY(x) + 2; drawRock(gm, x - 70, y, 100, 120, rs, TT([96, 104, 112])); drawRock(gm, x + 70, y, 100, 110, rs, TT([96, 104, 112])); gm.fillStyle = rgb(TT([88, 96, 104])); blob(gm, [[x - 110, y - 100], [x - 60, y - 142], [x, y - 150], [x + 62, y - 140], [x + 112, y - 96], [x + 60, y - 100], [x, y - 110], [x - 60, y - 104]]); gm.fill(); T.arch = { x, y: y - 56 }; }
   /* in front of the wreck */
   const coralsAt = [];
-  const place = (n, fn) => { for (let i = 0; i < n; i++) { const x = free(); fn(x, floorY(x) + rint(-4, 14), rs() * 0.5 + 0.8); coralsAt.push(x); } };
+  const place = (n, fn) => { for (let i = 0; i < n; i++) { const x = free(); ao(gf, x, floorY(x) + 10, 70, 0.4); fn(x, floorY(x) + rint(-4, 14), rs() * 0.5 + 0.8); coralsAt.push(x); } };
   const col = () => TT(pick(CORALS));
   place(rint(2, 3), (x, y, s) => drawBrain(gf, x, y, 34 * s, col(), rs));
   place(rint(3, 4), (x, y, s) => drawStag(gf, x, y, 118 * s, col(), rs));
@@ -2599,8 +2601,11 @@ function drawShark(g, s) {
   g.save(); bodyPath(); g.clip();
   if (sp.stripes) { g.fillStyle = "rgba(34,52,54,.5)"; for (let i = 0; i < 9; i++) { const p = sx[2 + i], k = 1 - i / 11; g.beginPath(); g.moveTo(p.x + L * 0.02, p.y - p.w); g.quadraticCurveTo(p.x - L * 0.005, p.y - p.w * 0.1, p.x - L * 0.02, p.y + p.w * (0.15 + 0.3 * k)); g.lineTo(p.x - L * 0.045, p.y + p.w * 0.1); g.quadraticCurveTo(p.x - L * 0.02, p.y - p.w * 0.3, p.x - L * 0.012, p.y - p.w); g.closePath(); g.fill(); } }
   if (sp.spots && s.spots) { g.fillStyle = "rgba(245,250,255,.85)"; s.spots.forEach((d) => { const p = sx[Math.min(N, Math.round(d[0] * N))]; g.beginPath(); g.arc(p.x, p.y + d[1] * p.w, d[2] * L, 0, TAU); g.fill(); }); g.strokeStyle = "rgba(220,235,245,.28)"; g.lineWidth = L * 0.014; for (let i = 3; i < 11; i++) { const p = sx[i]; g.beginPath(); g.moveTo(p.x, p.y - p.w); g.lineTo(p.x - L * 0.005, p.y + p.w); g.stroke(); } }
-  /* soft light on the back, shade on the belly */
-  const sh = g.createLinearGradient(0, -hwMax, 0, hwMax); sh.addColorStop(0, "rgba(255,255,255,.2)"); sh.addColorStop(0.35, "rgba(255,255,255,0)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,20,40,.22)"); g.fillStyle = sh; g.fillRect(-L, -hwMax * 2, L * 2, hwMax * 4);
+  /* volume: light from above, bounce light from the sand, a glossy streak along the back, darker toward the tail */
+  const sh = g.createLinearGradient(0, -hwMax, 0, hwMax); sh.addColorStop(0, "rgba(255,255,255,.30)"); sh.addColorStop(0.2, "rgba(255,255,255,.12)"); sh.addColorStop(0.42, "rgba(255,255,255,0)"); sh.addColorStop(0.66, "rgba(0,20,40,.10)"); sh.addColorStop(0.9, "rgba(0,20,40,.30)"); sh.addColorStop(1, "rgba(170,220,235,.22)"); g.fillStyle = sh; g.fillRect(-L, -hwMax * 2, L * 2, hwMax * 4);
+  const lo = g.createLinearGradient(L * 0.5, 0, -L * 0.5, 0); lo.addColorStop(0, "rgba(255,255,255,.08)"); lo.addColorStop(0.45, "rgba(0,0,0,0)"); lo.addColorStop(1, "rgba(0,10,28,.30)"); g.fillStyle = lo; g.fillRect(-L, -hwMax * 2, L * 2, hwMax * 4);
+  g.fillStyle = rg(g, L * 0.14, -hwMax * 0.55, 1, L * 0.3, [[0, "rgba(255,255,255,.30)"], [1, "rgba(255,255,255,0)"]]); g.save(); g.translate(L * 0.14, -hwMax * 0.55); g.scale(1, hwMax * 0.16 / (L * 0.3)); g.translate(-L * 0.14, hwMax * 0.55 / (hwMax * 0.16 / (L * 0.3)) * 0 - hwMax * 0.55 * 0); g.restore();
+  g.save(); g.translate(L * 0.1, -hwMax * 0.58); g.scale(1, 0.2); g.fillStyle = rg(g, 0, 0, 0, L * 0.3, [[0, "rgba(255,255,255,.34)"], [1, "rgba(255,255,255,0)"]]); g.beginPath(); g.arc(0, 0, L * 0.3, 0, TAU); g.fill(); g.restore();
   g.restore();
   g.strokeStyle = "rgba(0,12,24,.45)"; g.lineWidth = Math.max(1, L * 0.006); bodyPath(); g.stroke();
   /* head details */
@@ -2668,7 +2673,7 @@ function reefThink(f, dt) {
   f.vx += (dx / d * v - f.vx) * Math.min(1, dt * 3); f.vy += (dy / d * v - f.vy) * Math.min(1, dt * 3);
   f.x += f.vx * dt; f.y += f.vy * dt; if (Math.abs(f.vx) > 5) f.face = sgn(f.vx);
   f.fs += (f.face - f.fs) * Math.min(1, dt * 7); f.ph += dt * (4 + Math.hypot(f.vx, f.vy) * 0.14);
-  f.y = Math.min(f.y, floorY(f.x) - 8);
+  f.y = clamp(f.y, WATER + 50, floorY(f.x) - 8);
 }
 function drawReef(g, f) {
   const sp = f.sp, L = f.L, body = TT(sp.body), fin = TT(sp.fin), lowK = f.lane ? 0.5 : 0;
@@ -2697,6 +2702,8 @@ function drawReef(g, f) {
   else if (mk2 === "stripe") { g.fillStyle = "#12142a"; g.fillRect(-rx, -ry * 0.2, rx * 2, ry * 0.5); g.fillStyle = "rgba(255,255,255,.55)"; g.fillRect(-rx, ry * 0.5, rx * 2, ry * 0.5); }
   else if (mk2 === "spots") { g.fillStyle = "rgba(60,40,20,.55)"; for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(-rx * 0.6 + (i % 5) * rx * 0.3, -ry * 0.5 + ((i * 7) % 5) * ry * 0.3, 2.2, 0, TAU); g.fill(); } g.fillStyle = "rgba(255,248,220,.7)"; g.beginPath(); g.ellipse(0, ry * 0.65, rx * 0.8, ry * 0.4, 0, 0, TAU); g.fill(); }
   else if (mk2 === "lion") { g.fillStyle = "rgba(250,236,220,.85)"; for (let i = 0; i < 6; i++) g.fillRect(-rx * 0.8 + i * rx * 0.3, -ry, rx * 0.1, ry * 2); }
+  g.fillStyle = lg(g, 0, -ry, 0, ry, [[0, "rgba(255,255,255,.22)"], [0.35, "rgba(255,255,255,0)"], [0.75, "rgba(0,10,30,.08)"], [1, "rgba(0,10,30,.38)"]]); g.fillRect(-rx, -ry, rx * 2, ry * 2);
+  g.save(); g.translate(rx * 0.1, -ry * 0.5); g.scale(1, 0.3); g.fillStyle = rg(g, 0, 0, 0, rx * 0.6, [[0, "rgba(255,255,255,.55)"], [1, "rgba(255,255,255,0)"]]); g.beginPath(); g.arc(0, 0, rx * 0.6, 0, TAU); g.fill(); g.restore();
   g.restore();
   g.strokeStyle = "rgba(0,10,30,.35)"; g.lineWidth = 1; bodyP(); g.stroke();
   const ex = rx * (sp.shape === "puff" ? 0.45 : 0.55), er = Math.max(1.8, L * 0.045);
@@ -2975,6 +2982,8 @@ function update(dt) {
   T.cur = Math.sin(T.time * 0.3) * 3;
   /* the creatures */
   for (const s of T.sharks) { sharkThink(s, dt); sharkMove(s, dt); }
+  for (const q of T.sharks.concat(T.fish)) { if (q.z === undefined) { q.z = rnd(0, 0.7); q.zt = q.z; } if (Math.random() < dt * 0.04) q.zt = rnd(0, 0.7); q.z += (q.zt - q.z) * Math.min(1, dt * 0.3); }
+  T.camx = (T.camx || 0) + (Math.sin(T.time * 0.15) + (T.mouse ? (0.5 - T.mouse.x / W) * 2 : 0) - (T.camx || 0)) * Math.min(1, dt * 1.5);
   for (const f of T.fish) reefThink(f, dt);
   for (let i = T.schools.length - 1; i >= 0; i--) { schoolStep(T.schools[i], dt); if (!T.schools[i].m.length) T.schools.splice(i, 1); }
   for (let i = T.extras.length - 1; i >= 0; i--) { const e = T.extras[i]; e.t += dt; e.x += e.dir * e.v * dt; e.ph += dt * (e.kind === "manta" ? 2.2 : 2); e.y += Math.sin(e.t * 0.5) * 6 * dt; if (e.x < -260 || e.x > W + 260) T.extras.splice(i, 1); }
@@ -3012,43 +3021,51 @@ function update(dt) {
   if (!T.boat) T.boatSchool = false;
 }
 
+const dsc = (q) => 1.1 - 0.24 * (q.z || 0);
+function layer(g, img, dx, sx) { g.save(); g.translate(W / 2 + dx, 0); g.scale(sx || 1, 1); g.translate(-W / 2, 0); g.drawImage(img, 0, 0, W, H); g.restore(); }
+function shadow(g, x, y, w) {
+  const fy = floorY(x) + 12, a = 0.34 * clamp(1 - (fy - y) / 520, 0, 1); if (a < 0.02) return;
+  g.save(); g.translate(x, fy); g.scale(1, 0.15); g.fillStyle = rg(g, 0, 0, 0, w, [[0, "rgba(0,14,26," + a + ")"], [0.55, "rgba(0,14,26," + a * 0.55 + ")"], [1, "rgba(0,14,26,0)"]]); g.beginPath(); g.arc(0, 0, w, 0, TAU); g.fill(); g.restore();
+}
+function inDepth(g, q, fn) { const sc = dsc(q); g.save(); g.translate(q.x, q.y); g.scale(sc, sc); g.translate(-q.x, -q.y); g.globalAlpha = 1 - 0.2 * (q.z || 0); fn(); g.restore(); }
 function draw() {
   const g = T.g, K = T.K; g.setTransform(K, 0, 0, K, 0, 0); g.clearRect(0, 0, W, H);
-  const L = T.lay, wk = T.wreck;
+  const L = T.lay, wk = T.wreck, c = T.camx || 0;
   drawSky(g);
-  g.drawImage(L.bg, 0, 0, W, H);
+  layer(g, L.bg, c * 5, 1.03);
   drawRays(g);
-  g.drawImage(L.mid, 0, 0, W, H);
+  layer(g, L.mid, c * 2.5, 1.012);
   drawCaustics(g);
-  /* marine snow, deep */
   drawSnow(g);
-  /* things behind the wreck */
+  /* contact shadows on the sand: softer and fainter the higher the creature swims */
+  T.sharks.forEach((s) => { if (s.lane === 0) shadow(g, s.x, s.y, s.L * 0.5 * dsc(s)); });
+  T.fish.forEach((f) => shadow(g, f.x, f.y, f.L * 0.7 * dsc(f)));
+  T.extras.forEach((e) => shadow(g, e.x, e.y, e.kind === "manta" ? 110 : 55));
+  T.divers.forEach((d) => shadow(g, d.x, d.y, 55));
   T.extras.forEach((e) => { if (e.kind === "manta") drawManta(g, e); else drawTurtle(g, e); });
   g.drawImage(wk.back, wk.x, wk.y, wk.WW, wk.WH);
   T.sharks.forEach((s) => { if (s.lane === 1) drawShark(g, s); });
   g.drawImage(wk.front, wk.x, wk.y, wk.WW, wk.WH);
+  g.save(); g.translate(-c * 5, 0);
   g.drawImage(L.fore, 0, 0, W, H);
-  /* animated plants, chest, crabs */
   drawGrass(g);
   drawChest(g, T.chest.x, T.chest.y, T.chestOpen);
-  T.crabs.forEach((c) => drawCrab(g, c));
-  /* living things in front of the wreck */
+  T.crabs.forEach((cr) => { shadow(g, cr.x, floorY(cr.x) - 4, 20); drawCrab(g, cr); });
+  g.restore();
   T.schools.forEach((s) => drawSchool(g, s));
-  T.fish.forEach((f) => drawReef(g, f));
   T.jelly.forEach((j) => drawJelly(g, j));
-  T.sharks.filter((s) => s.lane === 0).sort((a, b) => a.L - b.L).forEach((s) => drawShark(g, s));
+  /* sharks and reef fish together, far ones first */
+  const crowd = T.fish.map((q) => [q, 0]).concat(T.sharks.filter((s) => s.lane === 0).map((q) => [q, 1])).sort((a, b) => (b[0].z || 0) - (a[0].z || 0));
+  crowd.forEach((p) => inDepth(g, p[0], () => (p[1] ? drawShark(g, p[0]) : drawReef(g, p[0]))));
   T.divers.forEach((d) => drawDiver(g, d));
   drawChumBits(g);
   T.flakes.forEach((f) => { g.fillStyle = "#d8b878"; g.fillRect(f.x, f.y, 3, 2); });
   drawParts(g); drawBubbles(g);
-  g.drawImage(L.fg, 0, 0, W, H);
-  /* surface and what is above it */
+  g.save(); g.translate(-c * 9, 0); g.drawImage(L.fg, 0, 0, W, H); g.restore();
   drawSurface(g); T.gulls.forEach((q) => drawGull(g, q)); drawBoat(g);
-  /* murk when the signal is poor, and a vignette */
   const mu = (1 - T.clarity) * 0.5; if (mu > 0.01) { g.fillStyle = "rgba(60,80,40," + mu + ")"; g.fillRect(0, WATER, W, H - WATER); }
-  g.fillStyle = rg(g, W / 2, H * 0.55, H * 0.35, W * 0.72, [[0, "rgba(0,0,0,0)"], [1, "rgba(0,8,20,.42)"]]); g.fillRect(0, WATER, W, H);
+  g.fillStyle = rg(g, W / 2, H * 0.55, H * 0.35, W * 0.72, [[0, "rgba(0,0,0,0)"], [1, "rgba(0,8,20,.5)"]]); g.fillRect(0, WATER, W, H);
   if (DAY.night) { g.fillStyle = "rgba(0,6,24,.18)"; g.fillRect(0, WATER, W, H); }
-  /* the counter */
   g.font = "600 13px system-ui, sans-serif"; g.textAlign = "right"; const msg = T.boat ? "Chum boat overhead" : "Chum boat in " + Math.max(0, T.need - T.hears) + " hears";
   g.fillStyle = "rgba(0,10,25,.55)"; const tw = g.measureText(msg).width; g.fillRect(W - tw - 26, WATER + 10, tw + 16, 22); g.fillStyle = "#e8f6ff"; g.fillText(msg, W - 18, WATER + 26); g.textAlign = "left";
 }

@@ -116,6 +116,8 @@
     const sb = $("stdBtn"); if (sb) sb.addEventListener("click", (ev) => { ev.preventDefault(); location.href = location.protocol === "file:" ? "dashboard.html" : "index.html"; });
     hud(); setInterval(() => { hud(); gate(); }, 1000); R.raf = requestAnimationFrame(frame);
   }
-  window.petAsk = function () { /* no pet on the tactical dashboard */ };
+  // no pet picture here; tell the radio to show its radar on the OLED (it remembers; the pet keeps ageing)
+  let tacAt = 0;
+  window.petAsk = function () { if (typeof S !== "undefined" && S.orion && Date.now() - tacAt > 60000) { tacAt = Date.now(); try { send("nova tac 1"); } catch (e) { /* not connected */ } } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

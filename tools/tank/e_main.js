@@ -232,7 +232,9 @@ function initUI() {
   $("tkSave").addEventListener("click", () => { T.cv.toBlob((b) => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "lodestar-shark-tank.png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); }); });
   const fs = $("tkFull"); if (!document.fullscreenEnabled) fs.hidden = true; else fs.addEventListener("click", () => { const e = $("tkStage"); if (document.fullscreenElement) document.exitFullscreen(); else e.requestFullscreen().then(() => setTimeout(sizeCanvas, 200)).catch(() => {}); });
   const bp = $("btnPet"); if (bp) bp.addEventListener("click", () => { if (VIEW !== "pet") setView("pet"); }, true);
-  const orig = window.petAsk; if (typeof orig === "function") window.petAsk = function () { if (VIEW === "pet") return orig.apply(this, arguments); };
+  // the standard dashboard puts the pet back on the radio's OLED (once per page load; harmless on radios without the radar)
+  let tacOff = false;
+  const orig = window.petAsk; if (typeof orig === "function") window.petAsk = function () { if (!tacOff && S.orion) { tacOff = true; try { send("nova tac 0"); } catch (e) { /* not connected */ } } if (VIEW === "pet") return orig.apply(this, arguments); };
   let v = "pet"; try { v = localStorage.getItem("lodestar-top") || "pet"; } catch (e) { /* none */ }
   setView(v, false);
 }

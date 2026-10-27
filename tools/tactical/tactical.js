@@ -121,6 +121,16 @@
     [...document.querySelectorAll(".grid .panel h2")].filter((e) => e.textContent.trim().toLowerCase() === "messages you sent").forEach((e) => { const pn = e.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); });
     if (set) { const pn = set.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); }
   }
+  /* keep the two columns about the same height whatever the data: move the last tile of the taller column across when that makes them closer */
+  function balance() {
+    const cols = document.querySelectorAll(".grid > .col"); if (cols.length !== 2) return; const a = cols[0], b = cols[1];
+    if (a.offsetLeft === b.offsetLeft) return;   // phone layout: one column
+    for (let i = 0; i < 8; i++) {
+      const ch = (c) => [...c.children].reduce((t, x) => t + x.offsetHeight + 12, 0), ha = ch(a), hb = ch(b), from = ha > hb ? a : b, to = from === a ? b : a, last = from.lastElementChild; if (!last || from.children.length < 3) return;
+      const h = last.offsetHeight + 12, d = Math.abs(ha - hb); if (Math.abs(Math.abs(ha - hb) - 2 * h) >= d) return;
+      to.appendChild(last);
+    }
+  }
   function book() {
     const g = $("bookGrid"); if (!g) return;
     const list = contacts(), t = Date.now(), h = here(), cnt = { 2: 0, 1: 0, 3: 0, 4: 0 };
@@ -149,7 +159,7 @@
     R.cv.addEventListener("pointerleave", () => { R.hi = ""; $("radarTip").hidden = true; });
     document.addEventListener("visibilitychange", () => { if (!R.raf) R.raf = requestAnimationFrame(frame); });
     const sb = $("stdBtn"); if (sb) sb.addEventListener("click", (ev) => { ev.preventDefault(); location.href = location.protocol === "file:" ? "dashboard.html" : "index.html"; });
-    layout();
+    layout(); balance(); setTimeout(balance, 1500); setInterval(balance, 5000); window.addEventListener("resize", balance);
     hud(); setInterval(() => { hud(); gate(); book(); }, 1000); R.raf = requestAnimationFrame(frame);
   }
   // no pet picture here; tell the radio to show its radar on the OLED (it remembers; the pet keeps ageing)

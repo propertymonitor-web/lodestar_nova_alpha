@@ -946,6 +946,20 @@ input[type=text], input[type=number], select { border-radius: 4px; font-family: 
 @keyframes tpulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .status .dot { animation: none !important; } }
 @media print { body::after { display: none !important; } }
+/* range book + contact log */
+.bookgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.bk { border: 1px solid var(--line); padding: 8px 10px; background: var(--panel); min-width: 0; }
+.bk span { display: block; font: 600 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.bk b { display: block; font: 700 22px var(--mono); color: var(--accent); margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk small { display: block; color: var(--ink2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clog { list-style: none; margin: 8px 0 0; padding: 0; max-height: 260px; overflow-y: auto; border: 1px solid var(--line); }
+.clog li { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: baseline; padding: 6px 10px; border-top: 1px solid var(--grid); font-size: 14px; }
+.clog li:first-child { border-top: 0; }
+.clog .up { font: 700 12px var(--mono); color: var(--accent); letter-spacing: .08em; }
+.clog .dn { font: 700 12px var(--mono); color: var(--bad, #ff6b6b); letter-spacing: .08em; }
+.clog time { font: 12px var(--mono); color: var(--muted); }
+.clog small { color: var(--muted); }
+@media (max-width: 640px) { .bookgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -2311,6 +2325,41 @@ if (S.route.length || S.found.size) fitAll();
     else if (S.frame && !MESH.seen && Date.now() - connectedAt > 25000) msg = "The Mesh Analyzer is not sending yet. It needs LODESTAR ORION with the Mesh Analyzer firmware. Contacts still show from the radio's contact list.";
     if (msg !== warned) { warned = msg; if (msg) notice(msg); else if ($("notice").textContent.indexOf("ORION TACTICAL") === 0 || $("notice").textContent.indexOf("The Mesh Analyzer is not") === 0) notice(""); }
   }
+  /* ---- layout: fill the left column (it ended after Battery while the right ran on) and add two tiles ---- */
+  const LOG = [], seenK = new Map(); let logInit = false;
+  const hnd = (h) => [...document.querySelectorAll(".grid .panel h2")].find((e) => e.textContent.trim().toLowerCase().startsWith(h));
+  function mk(id, title, note, inner) { const sec = document.createElement("section"); sec.className = "panel"; sec.id = id; sec.innerHTML = "<h2>" + title + ' <span class="note">' + note + "</span></h2>" + inner; return sec; }
+  function layout() {
+    const rep = hnd("repeaters this radio hears"), bat = hnd("battery, last 4 hours"), msg = hnd("messages you sent", 1), set = hnd("settings");
+    const left = rep && rep.closest(".col"); if (!left) return;
+    const book1 = mk("bookPanel", "Range book", "the contacts in the radar window, by the numbers", '<div class="bookgrid" id="bookGrid"></div><p class="hint" id="bookNote"></p>');
+    const log1 = mk("logPanel", "Contact log", "contacts appearing on and dropping off the radar", '<ul class="clog" id="clogList"></ul><p class="empty" id="clogEmpty">Nothing yet. A line appears when a contact is first heard or has not been heard for the whole radar window.</p>');
+    rep.closest(".panel").after(book1);
+    const batP = bat && bat.closest(".panel"); (batP || left.lastElementChild).after(log1);
+    // Messages you sent (the one in the grid, not the readout tile) and Settings move to the left column
+    [...document.querySelectorAll(".grid .panel h2")].filter((e) => e.textContent.trim().toLowerCase() === "messages you sent").forEach((e) => { const pn = e.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); });
+    if (set) { const pn = set.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); }
+  }
+  function book() {
+    const g = $("bookGrid"); if (!g) return;
+    const list = contacts(), t = Date.now(), h = here(), cnt = { 2: 0, 1: 0, 3: 0, 4: 0 };
+    list.forEach((c) => { if (cnt[c.n.t] != null) cnt[c.n.t]++; });
+    const pick = (f, cmp) => list.filter(f).sort(cmp)[0], name = (c) => (c.n.n || c.n.k.slice(0, 6));
+    const best = pick((c) => isFinite(+c.n.sn), (a, b) => +b.n.sn - +a.n.sn), far = pick((c) => c.pos, (a, b) => b.dist - a.dist), near = pick((c) => c.pos, (a, b) => a.dist - b.dist), fresh = pick(() => true, (a, b) => b.last - a.last);
+    const direct = list.filter((c) => c.n.hop === 0).length, pl = list.filter((c) => c.pos).length;
+    const tile = (k, v, sub) => '<div class="bk"><span>' + k + "</span><b>" + esc(String(v)) + "</b><small>" + esc(String(sub || "")) + "</small></div>";
+    g.innerHTML =
+      tile("Repeaters", cnt[2], "heard in window") + tile("Companions", cnt[1], "heard in window") + tile("Room servers", cnt[3], "heard in window") + tile("Direct", direct, "zero hops") +
+      tile("Strongest", best ? (+best.n.sn).toFixed(1) + " dB" : "--", best ? name(best) : "no contact") + tile("Farthest", far ? fmtD(far.dist) : "--", far ? name(far) + " " + cpass(far.ang / rad) : (h ? "no positions" : "needs GPS fix")) +
+      tile("Nearest", near ? fmtD(near.dist) : "--", near ? name(near) + " " + cpass(near.ang / rad) : (h ? "no positions" : "needs GPS fix")) + tile("Latest", fresh ? ageText(t - fresh.last) + " ago" : "--", fresh ? name(fresh) : "nobody yet");
+    $("bookNote").textContent = list.length ? pl + " of " + list.length + " have a known position; the rest are placed by signal strength." : "No contacts in the last " + (R.win / 60000) + " minutes.";
+    // contact log: first heard / dropped off, judged against the same window as the radar
+    const now = new Set(); list.forEach((c) => now.add(c.n.k));
+    if (logInit) { now.forEach((k) => { if (!seenK.has(k)) { const c = list.find((x) => x.n.k === k); LOG.unshift({ t, up: true, n: c.n }); } }); seenK.forEach((n, k) => { if (!now.has(k)) LOG.unshift({ t, up: false, n }); }); }
+    seenK.clear(); list.forEach((c) => seenK.set(c.n.k, c.n)); logInit = true; if (LOG.length > 60) LOG.length = 60;
+    const ul = $("clogList"), kind = { 1: "companion", 2: "repeater", 3: "room server", 4: "sensor" };
+    if (ul) { ul.innerHTML = LOG.map((e) => "<li><span class=\"" + (e.up ? "up" : "dn") + "\">" + (e.up ? "HEARD" : "LOST") + "</span><span>" + esc(e.n.n || e.n.k.slice(0, 6)) + " <small>" + (kind[e.n.t] || "node") + "</small></span><time>" + new Date(e.t).toLocaleTimeString([], { hour12: false }) + "</time></li>").join(""); $("clogEmpty").hidden = LOG.length > 0; }
+  }
   function init() {
     R.cv = $("radarCv"); const sel = $("radarWin"); sel.value = String(R.win);
     sel.addEventListener("change", () => { R.win = +sel.value; try { localStorage.setItem("orion-radarwin", String(R.win)); } catch (e) { /* ok */ } R.lit.clear(); });
@@ -2319,7 +2368,8 @@ if (S.route.length || S.found.size) fitAll();
     R.cv.addEventListener("pointerleave", () => { R.hi = ""; $("radarTip").hidden = true; });
     document.addEventListener("visibilitychange", () => { if (!R.raf) R.raf = requestAnimationFrame(frame); });
     const sb = $("stdBtn"); if (sb) sb.addEventListener("click", (ev) => { ev.preventDefault(); location.href = location.protocol === "file:" ? "dashboard.html" : "index.html"; });
-    hud(); setInterval(() => { hud(); gate(); }, 1000); R.raf = requestAnimationFrame(frame);
+    layout();
+    hud(); setInterval(() => { hud(); gate(); book(); }, 1000); R.raf = requestAnimationFrame(frame);
   }
   // no pet picture here; tell the radio to show its radar on the OLED (it remembers; the pet keeps ageing)
   let tacAt = 0;

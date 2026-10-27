@@ -910,6 +910,8 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 .tk-cap{margin:4px 0;color:var(--muted);font-size:.92em}
 @media (max-width:1000px){.tk-grid{grid-template-columns:minmax(0,1fr)}.tk-side{max-height:none;overflow:visible}.tk-mid{order:-1}}
 body.no-petpanel #petPanel{display:none!important}
+.tacbtn{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border:2px solid var(--accent);border-radius:8px;color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.tacbtn:hover{background:var(--accent);color:var(--panel)}.tacbtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -934,6 +936,7 @@ body.no-petpanel #petPanel{display:none!important}
     <button type="button" role="radio" aria-checked="true" data-view="pet">Pet</button>
     <button type="button" role="radio" aria-checked="false" data-view="tank">Shark tank</button>
   </div>
+  <a class="tacbtn" id="tacBtn" href="tactical.html" title="Open the ORION TACTICAL DASHBOARD (LODESTAR ORION on Heltec V4.3 R2 or V4 R8, with the Mesh Analyzer)">Tactical mode</a>
   <span class="vb-note" id="viewNote"></span>
 </section>
 <section class="tankwrap" id="tankPanel" hidden aria-label="Shark tank">

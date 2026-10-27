@@ -194,3 +194,7 @@ NOVA is built on **MeshCore**, an open-source project; please see the MeshCore r
 Transmit only where and how your local regulations allow (frequency, power, duty cycle; the V4's transmit-power setting is not the same number as the power at the antenna), and follow your local mesh community's norms.
 
 **LODESTAR NOVA by FEAR REACTIVE**
+
+## ORION TACTICAL DASHBOARD
+
+`docs/tactical.html` is a separate dashboard for LODESTAR ORION on the Heltec V4.3 R2 and V4 R8: tactical look, a radar of the contacts heard, and the Mesh Analyzer up front, with no pet or tank. Open it with the **Tactical mode** button next to the view selector on the standard dashboard. It is also attached to every ORION release as `tactical.html` (keep it in the same folder as `dashboard.html`). Rebuild with `python3 tools/build_tank.py && python3 tools/build_tactical.py`.

@@ -262,7 +262,11 @@ static inline void splash(DisplayDriver& d, const char* meshcore_version) {
   d.setTextSize(2); d.setColor(UIColor::primary_txt);
   d.drawTextCentered(mid, 13, NOVA_PRODUCT);
   d.setTextSize(1);
+#if OTR
+  d.drawTextCentered(mid, 31, "TACTICAL");     // OTR: Orion Tactical Radio
+#else
   d.drawTextCentered(mid, 31, "WRS");
+#endif
   d.drawTextCentered(d.width() / 2, 40, "Created by");
   d.drawTextCentered(d.width() / 2, 48, "Aries Thorne &");
   d.drawTextCentered(d.width() / 2, 56, "Todd Steinhauer");

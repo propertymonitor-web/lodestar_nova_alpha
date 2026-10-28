@@ -386,7 +386,7 @@ def main():
               "render interval")
     u = patch(u, r"(#ifndef UI_NO_HIBERNATE\n    if \(c == KEY_ENTER && _page == HomePage::SHUTDOWN\) \{)",
               lambda m: KEY_PAGES + m.group(1), "handleInput: SHUTDOWN key")
-    # boot splash: emblem + LODESTAR / NOVA / role / FEAR REACTIVE instead of the MeshCore logo, on screen 5 s (stock is 3 s)
+    # boot splash: emblem + LODESTAR / NOVA / role / Wolf Reactive Systems (WRS) instead of the MeshCore logo, on screen 5 s (stock is 3 s)
     u = patch(u, r"#define BOOT_SCREEN_MILLIS   3000   // 3 seconds", "#define BOOT_SCREEN_MILLIS   5000   // 5 seconds: long enough to read the emblem splash", "boot screen time")
     u = patch(u, r"(  int render\(DisplayDriver& display\) override \{\n)    // meshcore logo.*?(    return 1000;\n)",
               lambda m: m.group(1) + "    novaui::splash(display, _version_info);   // LODESTAR NOVA\n" + m.group(2), "splash screen", flags=re.S)

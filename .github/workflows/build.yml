@@ -244,7 +244,7 @@ jobs:
               HOW="Download firmware-merged.bin and flash it at https://flasher.meshcore.io (Custom Firmware). firmware.bin is the application-only image for updating an existing install."
               FILES="out/firmware-merged.bin out/firmware.bin out/dashboard.html" ;;
           esac
-          NOTES="$PRODUCT $WHAT for $BOARD, by FEAR REACTIVE. Beta test build ($FW_ENV, $UNITS speeds) on MeshCore commit $MC.
+          NOTES="$PRODUCT $WHAT for $BOARD, by Wolf Reactive Systems (WRS). Beta test build ($FW_ENV, $UNITS speeds) on MeshCore commit $MC.
 
           $HOW dashboard.html is the browser dashboard, the same page as the repository's docs folder. See the README for setup and testing notes."
           if gh release view "$TAG" >/dev/null 2>&1; then

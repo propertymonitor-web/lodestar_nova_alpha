@@ -94,7 +94,7 @@ int main() {
     CHECK(!(m.bad + m2.bad + m3.bad + m3b.bad + m3c.bad + m3d.bad + m4.bad + m5.bad + m6.bad + m6b.bad + m7.bad + m8.bad));
   }
   // ---- splash fits, and says who made it ----
-  { Mock m; splash(m, "v1.15.0"); CHECK(m.bad == 0 && m.xbm == 1 && m.has("LODESTAR") && m.has(NOVA_PRODUCT) && m.has("FEAR REACTIVE") && m.has(NOVA_ROLE_FOR_TEST));
+  { Mock m; splash(m, "v1.15.0"); CHECK(m.bad == 0 && m.xbm == 1 && m.has("LODESTAR") && m.has(NOVA_PRODUCT) && m.has("WRS") && m.has(NOVA_ROLE_FOR_TEST));
 #ifdef NOVA_ORION
     CHECK(m.has("Aries Thorne") && m.has("Todd Steinhauer"));
 #endif

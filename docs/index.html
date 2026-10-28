@@ -1,4 +1,8 @@
 <!doctype html>
+<!--
+  Engineered by Aries Thorne & Todd Steinhauer for Wolf Reactive Systems, with MeshCore community guidance and assistance.
+  Special thanks to the NTXMESH community, Meshcore Community, and Pat Steinhauer-Scates for their guidance and support.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -889,6 +893,7 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 .mtable .mstr div i { display: block; height: 100%; border-radius: 5px; }
 @media (max-width: 760px) { .mgrid { grid-template-columns: minmax(0, 1fr); } }
 </style>
+<style>.credit{max-width:1180px;margin:28px auto 22px;padding:14px 16px 0;border-top:1px dashed var(--line,#8886);text-align:center;color:var(--muted,#789);font-size:13px;line-height:1.55}.credit b{color:var(--ink2,inherit);font-weight:600}</style>
 <style id="tank-css">[hidden]{display:none!important}
 .viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px;padding:10px 14px}
 .vb-t{font-weight:600}.vb-note{color:var(--muted);font-size:.9em}
@@ -1048,8 +1053,7 @@ html:not(.tac) .hud, html:not(.tac) #radarCard, html:not(.tac) #bookPanel, html:
     <aside class="tk-side" id="tankR" aria-label="Map, nodes and controls"></aside>
   </div>
 </section>
-<!--TANK-HTML-END-->
-  <section class="panel" id="petPanel" aria-label="Your pet">
+<!--TANK-HTML-END-->  <section class="panel" id="petPanel" aria-label="Your pet">
     <h2>Your pet <span class="note">live from the radio's screen &middot; LODESTAR ORION + Pet firmware</span></h2>
     <p class="petstate" id="petState">Connect your radio to see your pet here.</p>
     <div class="petscreen" id="petBox"><canvas id="petCanvas" width="1024" height="512" role="img" aria-label="The pet on the radio's screen, enlarged"></canvas></div>
@@ -1229,6 +1233,7 @@ html:not(.tac) .hud, html:not(.tac) #radarCard, html:not(.tac) #bookPanel, html:
   </div>
 </div>
 
+<footer class="credit" id="credit"><div><b>Engineered by: Aries Thorne &amp; Todd Steinhauer for Wolf Reactive Services</b></div><div>Special thanks to the NTXMESH community, Meshcore Community, and Pat Steinhauer-Scates for their guidance and support.</div></footer>
 <div class="tip" id="tip" hidden></div>
 
 <script>/* Leaflet 1.9.4, BSD-2-Clause, (c) Vladimir Agafonkin, CloudMade. Included unchanged below. */
@@ -2293,6 +2298,7 @@ if (!("serial" in navigator)) notice("To connect a radio, open this page in Chro
 loadStored(); loadRegionList(); renderScoreChart(); renderBatt({}); if (window.L) { renderLiveMap({}); } else { renderMap({}); } renderFoundPanel();
 if (S.route.length || S.found.size) fitAll();
 </script>
+<script>/* LODESTAR-CREDIT */ try { console.info("Engineered by Aries Thorne & Todd Steinhauer for Wolf Reactive Systems, with MeshCore community guidance and assistance."); window.LODESTAR_CREDIT = "Engineered by Aries Thorne & Todd Steinhauer for Wolf Reactive Systems"; } catch (e) {}</script>
 <script id="tank-js">/*TANK-BEGIN*/
 (() => {
 "use strict";

@@ -62,3 +62,11 @@ h = h[:i] + '<script id="tactical-js">' + (t / "tactical.js").read_text(encoding
 tac = h.replace('<html lang="en">', '<html lang="en" class="tac">', 1).replace("<title>LODESTAR NOVA dashboard</title>", "<title>ORION TACTICAL DASHBOARD</title>", 1)
 (root / "docs" / "tactical.html").write_text(tac, encoding="utf-8")
 print("docs/index.html", len(h), "docs/tactical.html", len(tac))
+
+# OTR (Orion Tactical Radio): the same page with the pet, the shark tank and the mode switch taken out; tactical mode only
+o = tac
+o = re.sub(r'<script id="tank-js">.*?</script>\n?', '', o, flags=re.S)
+o = re.sub(r'<style id="tank-css">.*?</style>\n?', '', o, flags=re.S)
+o = re.sub(r'<!--TANK-HTML-BEGIN-->.*?<!--TANK-HTML-END-->\n?', '', o, flags=re.S)
+o = o.replace('<html lang="en" class="tac">', '<html lang="en" class="tac otr">', 1).replace("<title>ORION TACTICAL DASHBOARD</title>", "<title>OTR - Orion Tactical Radio</title>", 1)
+(root / "docs" / "otr.html").write_text(o, encoding="utf-8"); print("docs/otr.html", len(o))

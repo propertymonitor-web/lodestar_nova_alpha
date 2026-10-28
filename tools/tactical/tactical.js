@@ -177,15 +177,17 @@
     };
     setInterval(balance, 5000); window.addEventListener("resize", balance);
     setInterval(() => { if (!isTac()) return; hud(); gate(); book(); brandFix(); }, 1000);
-    let want = root.classList.contains("tac"); try { if (localStorage.getItem("lodestar-tac") === "1" || location.hash === "#tactical") want = true; } catch (e) { /* none */ }
+    let want = root.classList.contains("tac"); if (!OTR) { try { if (localStorage.getItem("lodestar-tac") === "1" || location.hash === "#tactical") want = true; } catch (e) { /* none */ } }
     root.classList.remove("tac"); setMode(want, false);
   }
   /* ---- the Tactical mode switch lives in this page, so the USB connection to the radio is never closed and reopened ---- */
   let stash = null, tacAt = 0;
-  const TBRAND = 'LODESTAR ORION<small>tactical dashboard</small>', TTITLE = "ORION TACTICAL DASHBOARD";
+  const OTR = root.classList.contains("otr");
+  const TBRAND = OTR ? 'ORION TACTICAL RADIO<small>OTR by LODESTAR</small>' : 'LODESTAR ORION<small>tactical dashboard</small>', TTITLE = OTR ? "OTR - Orion Tactical Radio" : "ORION TACTICAL DASHBOARD";
   function brandFix() { const b = document.querySelector(".brand"); if (b && b.innerHTML !== TBRAND) b.innerHTML = TBRAND; if (document.title !== TTITLE) document.title = TTITLE; }
   function sendMode(on) { try { if (typeof S !== "undefined" && S.writer && S.orion) send("nova tac " + (on ? 1 : 0)); } catch (e) { /* not connected */ } }
   function setMode(on, save) {
+    if (OTR) on = true;                       // OTR has no other mode
     const was = isTac(); if (on === was) return;
     root.classList.toggle("tac", on);
     if (save !== false) { try { localStorage.setItem("lodestar-tac", on ? "1" : "0"); } catch (e) { /* none */ } }

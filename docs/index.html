@@ -2027,6 +2027,7 @@ async function connect() {
     stopDemo();
     S.port = await navigator.serial.requestPort();
     await S.port.open({ baudRate: 115200 });
+    try { await S.port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) { /* not supported: carry on */ }   // idle control lines: some boards restart when they are left asserted
   } catch (e) { if (e.name !== "NotFoundError") notice("Could not open the radio's USB port: " + e.message + ". Close other programs that use it (the flasher, a serial monitor) and try again."); return; }
   S.mode = "serial"; setStatus("waiting", "Connected, waiting for data"); $("btnConnect").textContent = "Disconnect";
   const enc = new TextEncoderStream(); enc.readable.pipeTo(S.port.writable).catch(() => {}); S.writer = enc.writable.getWriter();

@@ -2146,7 +2146,7 @@ async function send(line) {
 async function openPort(port) {          // a radio that has just restarted takes a few seconds to show up again, so try more than once
   let err;
   for (let i = 0; i < 6; i++) {
-    try { await port.open({ baudRate: 115200 }); try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) { /* not supported: carry on */ } return; }   // idle control lines: some boards restart when they are left asserted
+    try { await port.open({ baudRate: 115200 }); return; }   // leave the control lines as the system sets them: many boards stay silent unless DTR is on
     catch (e) { err = e; if (e.name === "InvalidStateError") { try { await port.close(); } catch (e2) { /* was not open */ } } await new Promise((r) => setTimeout(r, 1200)); }
   }
   throw err;
@@ -2169,13 +2169,14 @@ async function connect(known) {
   PET.reset(); PET.ask = true; PET.asks = 0; PET.nosupport = false; petState("Asking the radio for its pet…");
   let tick = 0;
   // keep asking for the analyzer: a radio that was still starting up ignores the first requests, so never give up (just ask less often when nothing answers)
-  S.hello = () => { send("nova hello"); tick++; if (MESH.seen || tick <= 3 || tick % 5 === 0) send("nova mesh"); if (PET.ask) petAsk(); };
+  S.lastRx = Date.now(); let quiet = false;
+  S.hello = () => { if (Date.now() - S.lastRx > 12000) { if (!quiet) { quiet = true; termAdd("nothing received from the radio for 12 s", "ev"); notice("The radio is connected but is not sending anything. Wait a few seconds if it just restarted. If this stays, press the radio's reset button or unplug it and plug it back in (the Serial console under Radio diagnostics shows what it prints)."); } } else if (quiet) { quiet = false; termAdd("radio is sending again", "ev"); notice(""); } send("nova hello"); tick++; if (MESH.seen || tick <= 3 || tick % 5 === 0) send("nova mesh"); if (PET.ask) petAsk(); };
   S.hello(); S.keep = setInterval(S.hello, 3000);
   let buf = "";
   try {
     for (;;) {
       const { value, done } = await S.reader.read(); if (done) break;
-      buf += value; let i;
+      S.lastRx = Date.now(); buf += value; let i;
       while ((i = buf.indexOf("\n")) >= 0) { const ln = buf.slice(0, i); buf = buf.slice(i + 1); try { termLine(ln); onLine(ln); } catch (e) { /* one bad line must not close the link */ } }
       if (buf.length > 20000) buf = "";
     }

@@ -238,5 +238,6 @@ function initUI() {
   let v = "pet"; try { v = localStorage.getItem("lodestar-top") || "pet"; } catch (e) { /* none */ }
   setView(v, false);
 }
+window.__setTopView = setView;
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initUI); else initUI();
 })();/*TANK-END*/

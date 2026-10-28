@@ -69,3 +69,5 @@ input[type=text], input[type=number], select { border-radius: 4px; font-family: 
 .clog time { font: 12px var(--mono); color: var(--muted); }
 .clog small { color: var(--muted); }
 @media (max-width: 640px) { .bookgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/*OUTSIDE-SCOPE*/
+html:not(.tac) .hud, html:not(.tac) #radarCard, html:not(.tac) #bookPanel, html:not(.tac) #logPanel, html:not(.tac) #stdBtn { display: none !important; }

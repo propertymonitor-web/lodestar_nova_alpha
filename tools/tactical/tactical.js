@@ -33,8 +33,9 @@
     if (type === 2) g.arc(x, y, r, 0, TAU); else if (type === 1) { g.moveTo(x, y - r * 1.15); g.lineTo(x + r * 1.05, y + r * 0.8); g.lineTo(x - r * 1.05, y + r * 0.8); g.closePath(); } else { g.moveTo(x, y - r * 1.2); g.lineTo(x + r * 1.1, y); g.lineTo(x, y + r * 1.2); g.lineTo(x - r * 1.1, y); g.closePath(); }
     if (solid) { g.fillStyle = col; g.fill(); } else { g.lineWidth = 2; g.strokeStyle = col; g.stroke(); }
   }
+  const root = document.documentElement, isTac = () => root.classList.contains("tac");
   function frame() {
-    R.raf = 0; const cv = R.cv; if (!cv || document.hidden) return;
+    R.raf = 0; const cv = R.cv; if (!cv || document.hidden || !isTac()) return;
     mnaScan();
     const w = fit(), g = R.g, C = colours(), t = performance.now(), cx = w / 2, cy = w / 2, rd = w / 2 - 22;
     const sig = reduce ? 0 : (((t - R.t0) % PERIOD) / PERIOD) * TAU, prev = R.prev; R.prev = sig;
@@ -113,17 +114,24 @@
   function layout() {
     const rep = hnd("repeaters this radio hears"), bat = hnd("battery, last 4 hours"), msg = hnd("messages you sent", 1), set = hnd("settings");
     const left = rep && rep.closest(".col"); if (!left) return;
+    if (!orig) orig = [...document.querySelectorAll(".grid > .col")].map((c) => [c, [...c.children]]);
+    if ($("bookPanel")) { rep.closest(".panel").after($("bookPanel")); const bp0 = bat && bat.closest(".panel"); if (bp0) bp0.after($("logPanel")); moveTiles(left, msg, set); return; }
     const book1 = mk("bookPanel", "Range book", "the contacts in the radar window, by the numbers", '<div class="bookgrid" id="bookGrid"></div><p class="hint" id="bookNote"></p>');
     const log1 = mk("logPanel", "Contact log", "contacts appearing on and dropping off the radar", '<ul class="clog" id="clogList"></ul><p class="empty" id="clogEmpty">Nothing yet. A line appears when a contact is first heard or has not been heard for the whole radar window.</p>');
     rep.closest(".panel").after(book1);
     const batP = bat && bat.closest(".panel"); (batP || left.lastElementChild).after(log1);
-    // Messages you sent (the one in the grid, not the readout tile) and Settings move to the left column
+    moveTiles(left, msg, set);
+  }
+  let orig = null;
+  // Messages you sent (the one in the grid, not the readout tile) and Settings move to the left column
+  function moveTiles(left, msg, set) {
     [...document.querySelectorAll(".grid .panel h2")].filter((e) => e.textContent.trim().toLowerCase() === "messages you sent").forEach((e) => { const pn = e.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); });
     if (set) { const pn = set.closest(".panel"); if (pn && pn.parentElement !== left) left.appendChild(pn); }
   }
+  function unlayout() { if (orig) orig.forEach(([c, kids]) => kids.forEach((k) => c.appendChild(k))); }
   /* keep the two columns about the same height whatever the data: move the last tile of the taller column across when that makes them closer */
   function balance() {
-    const cols = document.querySelectorAll(".grid > .col"); if (cols.length !== 2) return; const a = cols[0], b = cols[1];
+    if (!isTac()) return; const cols = document.querySelectorAll(".grid > .col"); if (cols.length !== 2) return; const a = cols[0], b = cols[1];
     if (a.offsetLeft === b.offsetLeft) return;   // phone layout: one column
     for (let i = 0; i < 8; i++) {
       const ch = (c) => [...c.children].reduce((t, x) => t + x.offsetHeight + 12, 0), ha = ch(a), hb = ch(b), from = ha > hb ? a : b, to = from === a ? b : a, last = from.lastElementChild; if (!last || from.children.length < 3) return;
@@ -157,13 +165,41 @@
     R.cv.addEventListener("pointermove", (ev) => { const r = R.cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top, tip = $("radarTip"); let best = null, bd = 18; R.pts.forEach((p) => { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } });
       if (best) { const n = best.c.n; R.hi = n.k; tip.hidden = false; tip.textContent = (n.n || n.k.slice(0, 6)) + " – " + ({ 1: "companion", 2: "repeater", 3: "room server" }[n.t] || "node") + " – SNR " + n.sn + " dB – " + (n.hop === 0 ? "direct" : n.hop + " hops") + " – " + ageText(Date.now() - best.c.last) + " ago"; tip.style.left = Math.min(x + 14, r.width - 230) + "px"; tip.style.top = Math.max(0, y - 34) + "px"; } else { R.hi = ""; tip.hidden = true; } });
     R.cv.addEventListener("pointerleave", () => { R.hi = ""; $("radarTip").hidden = true; });
-    document.addEventListener("visibilitychange", () => { if (!R.raf) R.raf = requestAnimationFrame(frame); });
-    const sb = $("stdBtn"); if (sb) sb.addEventListener("click", (ev) => { ev.preventDefault(); location.href = location.protocol === "file:" ? "dashboard.html" : "index.html"; });
-    layout(); balance(); setTimeout(balance, 1500); setInterval(balance, 5000); window.addEventListener("resize", balance);
-    hud(); setInterval(() => { hud(); gate(); book(); }, 1000); R.raf = requestAnimationFrame(frame);
+    document.addEventListener("visibilitychange", () => { if (!R.raf && isTac()) R.raf = requestAnimationFrame(frame); });
+    const sb = document.createElement("button"); sb.id = "stdBtn"; sb.type = "button"; sb.textContent = "Standard dashboard"; sb.title = "Back to the standard dashboard (pet or shark tank)";
+    const bp = $("btnPet"); if (bp && bp.parentNode) bp.parentNode.insertBefore(sb, bp); else document.body.insertBefore(sb, document.body.firstChild);
+    sb.addEventListener("click", () => setMode(false));
+    const tb = $("tacBtn"); if (tb) tb.addEventListener("click", (ev) => { ev.preventDefault(); setMode(true); });
+    const prevAsk = window.petAsk;
+    window.petAsk = function () {     // in tactical mode: no pet picture; tell the radio to show its radar (it remembers; the pet keeps ageing)
+      if (isTac()) { if (typeof S !== "undefined" && S.orion && Date.now() - tacAt > 20000) { tacAt = Date.now(); sendMode(true); } return; }
+      if (typeof prevAsk === "function") return prevAsk.apply(this, arguments);
+    };
+    setInterval(balance, 5000); window.addEventListener("resize", balance);
+    setInterval(() => { if (!isTac()) return; hud(); gate(); book(); brandFix(); }, 1000);
+    let want = root.classList.contains("tac"); try { if (localStorage.getItem("lodestar-tac") === "1" || location.hash === "#tactical") want = true; } catch (e) { /* none */ }
+    root.classList.remove("tac"); setMode(want, false);
   }
-  // no pet picture here; tell the radio to show its radar on the OLED (it remembers; the pet keeps ageing)
-  let tacAt = 0;
-  window.petAsk = function () { if (typeof S !== "undefined" && S.orion && Date.now() - tacAt > 60000) { tacAt = Date.now(); try { send("nova tac 1"); } catch (e) { /* not connected */ } } };
+  /* ---- the Tactical mode switch lives in this page, so the USB connection to the radio is never closed and reopened ---- */
+  let stash = null, tacAt = 0;
+  const TBRAND = 'LODESTAR ORION<small>tactical dashboard</small>', TTITLE = "ORION TACTICAL DASHBOARD";
+  function brandFix() { const b = document.querySelector(".brand"); if (b && b.innerHTML !== TBRAND) b.innerHTML = TBRAND; if (document.title !== TTITLE) document.title = TTITLE; }
+  function sendMode(on) { try { if (typeof S !== "undefined" && S.writer && S.orion) send("nova tac " + (on ? 1 : 0)); } catch (e) { /* not connected */ } }
+  function setMode(on, save) {
+    const was = isTac(); if (on === was) return;
+    root.classList.toggle("tac", on);
+    if (save !== false) { try { localStorage.setItem("lodestar-tac", on ? "1" : "0"); } catch (e) { /* none */ } }
+    if (on) {
+      const b = document.querySelector(".brand"); stash = { b: b ? b.innerHTML : "", t: document.title };
+      if (window.__setTopView) window.__setTopView("none", false);           // put the tank's borrowed panels back
+      layout(); brandFix(); balance(); setTimeout(balance, 1500); hud(); book(); if (!R.raf) R.raf = requestAnimationFrame(frame); tacAt = Date.now();
+    } else {
+      unlayout(); warned = ""; const n = $("notice").textContent; if (n.indexOf("ORION TACTICAL") === 0 || n.indexOf("The Mesh Analyzer is not") === 0) notice("");
+      const b = document.querySelector(".brand"); if (stash && b) { b.innerHTML = stash.b; document.title = stash.t; }
+      let v = "pet"; try { v = localStorage.getItem("lodestar-top") || "pet"; } catch (e) { /* none */ } if (window.__setTopView) window.__setTopView(v, false);
+    }
+    sendMode(on);
+  }
+  window.__tac = { set: setMode, on: isTac };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

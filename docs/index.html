@@ -894,6 +894,7 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 @media (max-width: 760px) { .mgrid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 <style>.credit{max-width:1180px;margin:28px auto 22px;padding:14px 16px 0;border-top:1px dashed var(--line,#8886);text-align:center;color:var(--muted,#789);font-size:13px;line-height:1.55}.credit b{color:var(--ink2,inherit);font-weight:600}</style>
+<style>.termbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.termbar input[type=text]{flex:1;min-width:200px}#termOut{max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}</style>
 <style id="tank-css">[hidden]{display:none!important}
 .viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px;padding:10px 14px}
 .vb-t{font-weight:600}.vb-note{color:var(--muted);font-size:.9em}
@@ -1228,6 +1229,11 @@ html:not(.tac) .hud, html:not(.tac) #radarCard, html:not(.tac) #bookPanel, html:
         <h2>Radio diagnostics</h2>
         <dl class="dgrid" id="diag"></dl>
         <details><summary>Latest raw data</summary><pre class="raw" id="raw">Nothing received yet.</pre></details>
+        <details id="termBox"><summary>Serial console (what the radio prints, boot messages, commands)</summary>
+          <div class="termbar"><label><input type="checkbox" id="termData"> show the dashboard data lines too</label><button type="button" id="termClear">Clear</button><button type="button" id="termSave">Save as text file</button></div>
+          <pre class="raw" id="termOut" tabindex="0" aria-live="off">Connect the radio to see its output here. When the radio restarts, its start-up messages appear here.</pre>
+          <form id="termForm" class="termbar"><input type="text" id="termIn" placeholder="type a command, for example: nova tac" autocomplete="off" spellcheck="false" aria-label="Command to send to the radio"><button type="submit">Send</button></form>
+        </details>
       </section>
     </div>
   </div>
@@ -1306,6 +1312,22 @@ function colorFor(id) { if (!(id in S.colorOf)) S.colorOf[id] = SERIES[S.nextCol
 function setStatus(state, text) { $("status").dataset.state = state; $("statusText").textContent = text; }
 function notice(text) { const n = $("notice"); if (text) { n.textContent = text; n.hidden = false; } else n.hidden = true; }
 function cmdLog(t) { $("cmdLog").textContent = t; }
+/* ---- serial console: everything the radio prints that is not dashboard data (start-up messages, command replies), with times ---- */
+const TERM = { lines: [], data: false };
+function termAdd(txt, kind) {
+  const d = new Date(), p = (v, n) => String(v).padStart(n || 2, "0");
+  TERM.lines.push(p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + "." + p(d.getMilliseconds(), 3) + (kind === "tx" ? " > " : kind === "ev" ? " * " : "   ") + txt);
+  if (TERM.lines.length > 800) TERM.lines.splice(0, TERM.lines.length - 800);
+  TERM.dirty = true;
+}
+function termLine(ln) { const t = ln.replace(/\r$/, ""); if (!t.trim()) return; const isData = t[0] === "{"; if (isData && !TERM.data) return; termAdd(t.length > 400 ? t.slice(0, 400) + " ..." : t, "rx"); }
+setInterval(() => { if (!TERM.dirty) return; TERM.dirty = false; const o = $("termOut"), stick = o.scrollTop + o.clientHeight >= o.scrollHeight - 8; o.textContent = TERM.lines.join("\n"); if (stick) o.scrollTop = o.scrollHeight; }, 400);
+document.addEventListener("DOMContentLoaded", () => {
+  $("termData").addEventListener("change", (e) => { TERM.data = e.target.checked; });
+  $("termClear").addEventListener("click", () => { TERM.lines = []; $("termOut").textContent = ""; });
+  $("termSave").addEventListener("click", () => { const b = new Blob([TERM.lines.join("\n") + "\n"], { type: "text/plain" }), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "radio-console-" + new Date().toISOString().replace(/[:.]/g, "-") + ".txt"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); });
+  $("termForm").addEventListener("submit", (e) => { e.preventDefault(); const i = $("termIn"), v = i.value.trim(); if (!v) return; termAdd(v, "tx"); send(v); i.value = ""; });
+});
 
 /* ------------------------------------------------------------------ intake */
 function onFrame(f, ts) {
@@ -2139,7 +2161,7 @@ async function connect(known) {
     S.port = known || await navigator.serial.requestPort();
     await openPort(S.port);
   } catch (e) { S.opening = false; S.port = null; if (e.name !== "NotFoundError") notice("Could not open the radio's USB port: " + e.message + ". Close other programs that use it (the flasher, a serial monitor) and try again. If it still fails, unplug the radio and plug it in again."); return; }
-  S.opening = false; S.manual = false; autoFlag(true);
+  S.opening = false; S.manual = false; autoFlag(true); termAdd("port opened", "ev");
   S.mode = "serial"; setStatus("waiting", "Connected, waiting for data"); $("btnConnect").textContent = "Disconnect";
   const enc = new TextEncoderStream(); S.wpipe = enc.readable.pipeTo(S.port.writable).catch(() => {}); S.writer = enc.writable.getWriter();
   const dec = new TextDecoderStream(); S.rpipe = S.port.readable.pipeTo(dec.writable).catch(() => {}); S.reader = dec.readable.getReader();
@@ -2154,7 +2176,7 @@ async function connect(known) {
     for (;;) {
       const { value, done } = await S.reader.read(); if (done) break;
       buf += value; let i;
-      while ((i = buf.indexOf("\n")) >= 0) { const ln = buf.slice(0, i); buf = buf.slice(i + 1); try { onLine(ln); } catch (e) { /* one bad line must not close the link */ } }
+      while ((i = buf.indexOf("\n")) >= 0) { const ln = buf.slice(0, i); buf = buf.slice(i + 1); try { termLine(ln); onLine(ln); } catch (e) { /* one bad line must not close the link */ } }
       if (buf.length > 20000) buf = "";
     }
   } catch (e) { /* unplugged */ }
@@ -2165,6 +2187,7 @@ async function disconnect(lost) {
   const port = S.port, rd = S.reader, wr = S.writer, rp = S.rpipe, wp = S.wpipe;
   S.port = S.reader = S.writer = S.rpipe = S.wpipe = null; S.mode = "off";
   if (!lost) autoFlag(false);
+  termAdd(lost ? "port lost (radio unplugged or restarting)" : "port closed by you", "ev");
   try { if (rd) await rd.cancel(); } catch (e) {}
   try { if (wr) await wr.close(); } catch (e) {}
   try { await Promise.all([rp, wp].filter(Boolean)); } catch (e) {}      // let the pipes let go of the port, or it cannot be closed (and would need a re-plug)

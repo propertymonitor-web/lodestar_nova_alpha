@@ -2204,7 +2204,7 @@ async function disconnect(lost) {
 if ("serial" in navigator) {
   const again = async (port) => { if (!autoFlag() || S.mode !== "off" || S.demo || S.opening) return; await connect(port); };
   navigator.serial.addEventListener("connect", (ev) => { setTimeout(() => again(ev.target), 1000); });
-  window.addEventListener("load", async () => { try { const ps = await navigator.serial.getPorts(); if (ps.length === 1) again(ps[0]); } catch (e) { /* no permission yet */ } });
+  /* No auto-open on page load: opening the port toggles DTR/RTS, which resets an ESP32-S3 radio. Connect is a click. */
   document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode === "serial" && S.hello) S.hello(); });
 }
 

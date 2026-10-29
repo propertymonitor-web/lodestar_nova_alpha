@@ -2144,10 +2144,12 @@ async function send(line) {
   if (!S.writer) { cmdLog("Not connected. Connect the radio first."); return; }
   try { await S.writer.write(line + "\n"); } catch (e) { cmdLog("Could not send: " + e.message); }
 }
+// DTR and RTS both on is the one control-line state that does not restart these radios (any other combination reboots them), so set it right after opening.
+async function holdLines(p) { try { await p.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) { /* this browser cannot set them */ } }
 async function openPort(port) {          // a radio that has just restarted takes a few seconds to show up again, so try more than once
   let err;
   for (let i = 0; i < 6; i++) {
-    try { await port.open({ baudRate: 115200 }); return; }   // leave the control lines as the system sets them: many boards stay silent unless DTR is on
+    try { await port.open({ baudRate: 115200 }); await holdLines(port); return; }   // leave the control lines as the system sets them: many boards stay silent unless DTR is on
     catch (e) { err = e; if (e.name === "InvalidStateError") { try { await port.close(); } catch (e2) { /* was not open */ } } await new Promise((r) => setTimeout(r, 1200)); }
   }
   throw err;

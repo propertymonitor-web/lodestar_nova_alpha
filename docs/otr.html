@@ -2161,6 +2161,8 @@ if ("serial" in navigator) {
   const again = async (port) => { if (!autoFlag() || S.mode !== "off" || S.demo || S.opening) return; await connect(port); };
   navigator.serial.addEventListener("connect", (ev) => { setTimeout(() => again(ev.target), 1000); });
   /* No auto-open on page load: opening the port toggles DTR/RTS, which resets an ESP32-S3 radio. Connect is a click. */
+  /* Leaving the page closes the port, which drops DTR/RTS one after the other and can restart the radio. Release both in one step first (best effort). */
+  window.addEventListener("pagehide", () => { try { if (S.port && S.port.setSignals) S.port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) {} });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode === "serial" && S.hello) S.hello(); });
 }
 

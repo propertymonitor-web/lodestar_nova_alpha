@@ -409,16 +409,20 @@ def main():
 
     # ---- main.cpp: a Bluetooth PIN that survives restarts --------------------------
     # Stock MeshCore picks a NEW random pairing PIN every time a radio with a screen starts, so any restart breaks the phone's saved pairing.
-    # Here the radio makes one random PIN the first time it starts, saves it, and keeps it (the PIN screen shows it; "set pin" still overrides it).
+    # Here the PIN is worked out from the chip's own unique ID, so it is the same at every restart and nothing is written to flash at boot (the PIN screen shows it; "set pin" still overrides it).
     mp = os.path.join(comp, "main.cpp")
     with open(mp) as f:
         m = f.read()
     m = patch(m, r"      StdRNG rng;\n      the_mesh\.setBLEPin\(rng\.nextInt\(100000, 999999\)\); // random pin each session\n",
               "      StdRNG rng;\n"
-              "      uint32_t ls_pin = rng.nextInt(100000, 999999);   // LODESTAR: made once for this radio, then kept\n"
-              "      the_mesh.getNodePrefs()->ble_pin = ls_pin;\n"
-              "      the_mesh.savePrefs();\n"
-              "      the_mesh.setBLEPin(ls_pin);\n", "persistent BLE pin")
+              "#if defined(ESP32)\n"
+              "      // LODESTAR: the PIN comes from the chip's own unique ID, so it is the same at every restart and nothing has to be written to flash at boot\n"
+              "      uint64_t ls_mac = ESP.getEfuseMac(); uint32_t ls_h = 2166136261u;\n"
+              "      for (int ls_i = 0; ls_i < 6; ls_i++) { ls_h ^= (uint8_t)(ls_mac >> (8 * ls_i)); ls_h *= 16777619u; }\n"
+              "      the_mesh.setBLEPin(100000 + ls_h % 900000);\n"
+              "#else\n"
+              "      the_mesh.setBLEPin(rng.nextInt(100000, 999999)); // random pin each session\n"
+              "#endif\n", "persistent BLE pin")
     with open(mp, "w") as f:
         f.write(m)
 
@@ -427,7 +431,7 @@ def main():
     print("  + src/helpers/Nova.h, src/helpers/Lodestar.h, examples/companion_radio/ui-new/NovaPages.h")
     print("  ~ examples/companion_radio/MyMesh.h        (hooks)")
     print("  ~ examples/companion_radio/MyMesh.cpp      (packet hooks, send/ack tracking, settings, dashboard link)")
-    print("  ~ examples/companion_radio/main.cpp       (Bluetooth PIN is made once and kept)")
+    print("  ~ examples/companion_radio/main.cpp       (Bluetooth PIN comes from the chip ID, so it stays the same)")
     print("  ~ examples/companion_radio/ui-new/UITask.cpp (7 new screens, splash, quiet hours, profile screen timeout)")
 
 

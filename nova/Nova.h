@@ -44,11 +44,11 @@
 
 // Speed units. The default build speaks km/h; build with -DNOVA_MPH=1 for a miles-per-hour version.
 #ifdef NOVA_MPH
-#define NOVA_VERSION        "0.1.1-beta" NOVA_VER_SFX "-mph"
+#define NOVA_VERSION        "0.1.2-beta" NOVA_VER_SFX "-mph"
 #define NOVA_SPD_MUL        2.23694f      // metres per second -> miles per hour
 #define NOVA_SPD_UNIT       "mph"
 #else
-#define NOVA_VERSION        "0.1.1-beta" NOVA_VER_SFX
+#define NOVA_VERSION        "0.1.2-beta" NOVA_VER_SFX
 #define NOVA_SPD_MUL        3.6f          // metres per second -> kilometres per hour
 #define NOVA_SPD_UNIT       "km/h"
 #endif

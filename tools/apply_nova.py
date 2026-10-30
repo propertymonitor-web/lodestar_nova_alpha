@@ -407,11 +407,27 @@ def main():
         with open(p, "w") as f:
             f.write(body)
 
+    # ---- main.cpp: a Bluetooth PIN that survives restarts --------------------------
+    # Stock MeshCore picks a NEW random pairing PIN every time a radio with a screen starts, so any restart breaks the phone's saved pairing.
+    # Here the radio makes one random PIN the first time it starts, saves it, and keeps it (the PIN screen shows it; "set pin" still overrides it).
+    mp = os.path.join(comp, "main.cpp")
+    with open(mp) as f:
+        m = f.read()
+    m = patch(m, r"      StdRNG rng;\n      the_mesh\.setBLEPin\(rng\.nextInt\(100000, 999999\)\); // random pin each session\n",
+              "      StdRNG rng;\n"
+              "      uint32_t ls_pin = rng.nextInt(100000, 999999);   // LODESTAR: made once for this radio, then kept\n"
+              "      the_mesh.getNodePrefs()->ble_pin = ls_pin;\n"
+              "      the_mesh.savePrefs();\n"
+              "      the_mesh.setBLEPin(ls_pin);\n", "persistent BLE pin")
+    with open(mp, "w") as f:
+        f.write(m)
+
     add_credit(paths["c"])
     print("LODESTAR NOVA applied:")
     print("  + src/helpers/Nova.h, src/helpers/Lodestar.h, examples/companion_radio/ui-new/NovaPages.h")
     print("  ~ examples/companion_radio/MyMesh.h        (hooks)")
     print("  ~ examples/companion_radio/MyMesh.cpp      (packet hooks, send/ack tracking, settings, dashboard link)")
+    print("  ~ examples/companion_radio/main.cpp       (Bluetooth PIN is made once and kept)")
     print("  ~ examples/companion_radio/ui-new/UITask.cpp (7 new screens, splash, quiet hours, profile screen timeout)")
 
 

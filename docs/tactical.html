@@ -3605,7 +3605,7 @@ if (document.readyState === "loading") document.addEventListener("DOMContentLoad
 <script id="updates-js">
 (function () {
   "use strict";
-  const DASH_ID = "tactical", DASH_VERSION = "1.1.0";
+  const DASH_ID = "tactical", DASH_VERSION = "1.2.0";
   const FW_REPO = "propertymonitor-web/firmware_updates", DASH_REPO = "propertymonitor-web/dashboard_updates";
   const RAW = (repo, path) => "https://raw.githubusercontent.com/" + repo + "/main/" + path;
   const ESPTOOL = "https://cdn.jsdelivr.net/npm/esptool-js@0.5.7/bundle.js";
@@ -3719,7 +3719,7 @@ if (document.readyState === "loading") document.addEventListener("DOMContentLoad
     let m;
     try { m = await getJson(RAW(FW_REPO, "latest.json")); }
     catch (e) { setMsg('<span class="big bad">Could not check</span>' + esc(e.message) + ". Check your internet connection and try again."); setActions([{ label: "Back", run: () => show("home") }, closeBtn]); return; }
-    const product = DASH_ID === "otr" ? "otr" : (f.ed === "orion" ? "orion" : "nova");
+    const product = (DASH_ID === "otr" || DASH_ID === "cairn") ? DASH_ID : (f.ed === "orion" ? "orion" : "nova");
     const entry = m.products && m.products[product];
     const unit = f.unit === "mph" ? "mph" : "metric";
     const mine = ver(f.v), latest = entry && ver(entry.version);
@@ -3757,7 +3757,10 @@ if (document.readyState === "loading") document.addEventListener("DOMContentLoad
       const chip = await loader.main(); log("chip: " + chip);
       if (!/ESP32-S3/i.test(String(chip))) throw new Error("This is not an ESP32-S3 radio (" + chip + "), so nothing was written");
       setMsg("Writing the new firmware. Do not unplug the radio...");
-      await loader.writeFlash({ fileArray: [{ data: toBinaryString(bytes), address: file.offset }], flashSize: "keep", flashMode: "keep", flashFreq: "keep", eraseAll: false, compress: true,
+      const parts = [{ data: toBinaryString(bytes), address: file.offset }];
+      // blank areas to clear after the app is written (the "which copy to start" record, so the radio starts the copy just written)
+      (file.extra || []).forEach((x) => parts.push({ data: String.fromCharCode(x.fill & 255).repeat(x.length), address: x.offset }));
+      await loader.writeFlash({ fileArray: parts, flashSize: "keep", flashMode: "keep", flashFreq: "keep", eraseAll: false, compress: true,
         reportProgress: (i, written, total) => progress(5 + (total ? written / total : 0) * 93) });
       progress(99); setMsg("Restarting the radio...");
       await loader.after("hard_reset");

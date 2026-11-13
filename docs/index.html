@@ -60,6 +60,8 @@ body {
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
 
 /* ---- top bar ---- */
+.baud { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); font-weight: 600; }
+.baud[hidden] { display: none !important; }
 header.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 18px 0 14px; }
 .brand { font: 700 26px/1 var(--font-d); letter-spacing: .01em; margin: 0; }
 .brand small { font: 500 14px var(--font); color: var(--muted); margin-left: 10px; letter-spacing: 0; }
@@ -118,7 +120,11 @@ tr.best .id::before { content: "\2605  "; color: var(--s1); }
 
 svg text { font-family: var(--font); }
 .chart { position: relative; }
-.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg { display: block; width: 100%; height: auto; overflow: hidden; }
+.chart-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -2px 0 10px; }
+.chart-controls button { border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); color: var(--muted); font: inherit; font-size: 12px; padding: 4px 8px; cursor: pointer; }
+.chart-controls button:hover, .chart-controls button:focus-visible { color: var(--ink); border-color: var(--s1); }
+.chart-controls span { color: var(--muted); font-size: 12px; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 13px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.18); white-space: nowrap; z-index: 3; transform: translate(-50%, -110%); }
 .tip[hidden] { display: none; }
 
@@ -860,6 +866,17 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 .petstate { margin: 0 0 10px; color: var(--ink2); }
 .petstate.bad { color: var(--bad); }
 .petbar .cap.stale { color: var(--muted); font-weight: 400; }
+/* pet actions, mesh contacts and radio keys: the whole block stays hidden until the radio has answered "nova hello" */
+.pc { margin-top: 14px; display: grid; gap: 14px; }
+.pc[hidden], .pc [hidden] { display: none !important; }
+.pc h3 { margin: 0 0 6px; font-size: 13px; color: var(--ink2); font-weight: 600; }
+.pcrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pckeys { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; justify-content: start; }
+.pclist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.pclist li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pclist .nm { flex: 1 1 160px; font-weight: 600; overflow-wrap: anywhere; }
+.pclist .id { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.pc .log { margin-top: 6px; }
 /* ---- mesh analyzer ---- */
 #meshPanel { margin-bottom: 12px; }
 .mtiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 4px 0 10px; }
@@ -875,11 +892,14 @@ select { font: 500 14px var(--font); padding: 6px 8px; border: 1px solid var(--l
 .mcard.wide { grid-column: 1 / -1; }
 .mcard h3 { margin: 0 0 6px; font: 600 15px var(--font-d); }
 .mcard h3 .note { margin-left: 8px; font-weight: 400; }
+.mcard h3 select { margin-left: 6px; font-size: 12px; vertical-align: 1px; }
 #mLegend .sw { border-radius: 50%; margin-right: 4px; vertical-align: -2px; }
 .mcard h3.sub { margin-top: 14px; }
 .mcard canvas { width: 100%; display: block; }
+.mtrend-scroll { overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 3px; }
+.mtrend-scroll canvas { max-width: none; }
 .mhover { margin: 6px 0 0; min-height: 1.3em; font: 500 13px var(--font); color: var(--ink2); }
-.mbars .mrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 48px; align-items: center; gap: 8px; margin: 3px 0; font: 500 13px var(--font); }
+.mbars .mrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 76px; align-items: center; gap: 8px; margin: 3px 0; font: 500 13px var(--font); }
 .mbars .mtrack { height: 12px; background: var(--grid); border-radius: 6px; overflow: hidden; }
 .mbars .mfill { height: 100%; border-radius: 6px; min-width: 2px; }
 .mbars .mrow em { font-style: normal; text-align: right; color: var(--ink2); }
@@ -1008,6 +1028,7 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
     <span class="status" id="status" data-state="off" role="status"><span class="dot"></span><span id="statusText">Not connected</span></span>
     <span class="spacer"></span>
     <button id="btnConnect" class="primary">Connect radio</button>
+    <label class="baud" id="baudBox">Speed <select id="baudSel" aria-label="USB serial speed in baud"><option value="115200">115200</option><option value="230400">230400</option><option value="460800">460800</option><option value="921600">921600</option></select></label>
     <button id="btnDemo">Try sample data</button>
     <button id="btnSave" disabled>Save log</button>
     <button id="btnPet" aria-label="Go to the pet screen">Pet</button>
@@ -1070,11 +1091,44 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
       <button id="petPng">Save picture</button>
       <button id="petGrid" aria-pressed="false">Pixel grid</button>
     </div>
-    <div class="petname">
+    <div class="petname" id="petNameBox" hidden>
       <label for="petNameIn">Name your pet</label>
       <input id="petNameIn" type="text" maxlength="7" autocomplete="off" spellcheck="false" placeholder="up to 7 characters" disabled>
       <button id="petNameSet" disabled>Set name</button>
       <span class="note" id="petNameNote">It shows at the top of the radio's screen and here. Leave it empty and press Set to clear it. Names the pet on the screen right now.</span>
+    </div>
+    <div class="pc" id="pcBox" hidden>
+      <div class="pcgrp" id="pcPet">
+        <h3>Pet actions</h3>
+        <div class="pcrow">
+          <button id="pcClean">Clean the tank</button>
+          <button id="pcFeed">Feed</button>
+          <button id="pcGuessPlay">Play the guess game</button>
+        </div>
+        <div class="pcrow" id="pcGuessRow" hidden>
+          <span class="note">Is the next number higher or lower?</span>
+          <button id="pcGuessHi">Higher</button>
+          <button id="pcGuessLo">Lower</button>
+        </div>
+        <p class="log" id="pcPetLog" role="status"></p>
+        <p class="log" id="pcGuessLog" role="status"></p>
+      </div>
+      <div class="pcgrp" id="pcMesh">
+        <h3>Mesh</h3>
+        <div class="pcrow"><button id="pcRefresh">Refresh contacts</button><span class="note" id="pcMeshNote"></span></div>
+        <ul class="pclist" id="pcContacts" aria-label="Contacts the radio can reach"></ul>
+        <p class="log" id="pcMeshLog" role="status"></p>
+      </div>
+      <div class="pcgrp" id="pcKeys">
+        <h3>Radio controls <span class="note">the radio's own buttons, from this page</span></h3>
+        <div class="pckeys">
+          <span></span><button id="pcKeyUp" aria-label="Up">&uarr;</button><span></span>
+          <button id="pcKeyLeft" aria-label="Left">&larr;</button><button id="pcKeyEnter" title="Press for Enter, hold for a long press">Enter (hold)</button><button id="pcKeyRight" aria-label="Right">&rarr;</button>
+          <button id="pcKeyBack">Back</button><button id="pcKeyDown" aria-label="Down">&darr;</button><span></span>
+        </div>
+        <div class="pcrow" style="margin-top:8px"><button id="pcKeyClean">Clean tank</button></div>
+        <p class="log" id="pcKeyLog" role="status"></p>
+      </div>
     </div>
   </section>
 
@@ -1082,10 +1136,15 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
     <h2>Mesh analyzer <span class="note" id="meshNote">every packet this radio hears, live &middot; LODESTAR ORION + Mesh Analyzer firmware</span></h2>
     <div class="mtiles" id="mTiles"></div>
     <div class="mbar">
-      <ul class="chips" id="mLegend" aria-label="Packet types"></ul>
       <span class="spacer"></span>
       <label for="mWin">Show</label>
       <select id="mWin"><option value="60000">1 minute</option><option value="300000" selected>5 minutes</option><option value="900000">15 minutes</option><option value="3600000">1 hour</option></select>
+      <label for="mScale">Scale</label>
+      <select id="mScale" aria-label="Signal chart scale"><option value="auto" selected>Automatic</option><option value="reference">Reference range</option></select>
+      <label for="mHistory">History</label>
+      <select id="mHistory" aria-label="Traffic history window"><option value="clock" selected>Clock-aligned</option><option value="rolling">Rolling</option></select>
+      <label for="mSort">Traffic sort</label>
+      <select id="mSort" aria-label="Traffic bar sorting"><option value="count" selected>Most frequent</option><option value="type">Packet type</option></select>
       <button id="mPause" aria-pressed="false">Pause</button>
       <button id="mCsv">Save CSV</button>
       <button id="mClear">Clear</button>
@@ -1098,8 +1157,18 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
         <canvas id="mQual" data-h="230" role="img" aria-label="Signal strength against SNR"></canvas></div>
       <div class="mcard"><h3>What is on the air <span class="note" id="mTypeNote"></span></h3>
         <div class="mbars" id="mTypes"></div>
-        <h3 class="sub">Hops the packets travelled</h3>
+        <h3 class="sub">Composition <select id="mComposition" aria-label="Traffic composition measure"><option value="packets" selected>Packets</option><option value="airtime">Observed airtime</option></select></h3>
+        <canvas id="mPie" data-h="190" role="img" aria-label="Traffic composition pie chart"></canvas>
+        <p class="note" id="mPieNote"></p></div>
+      <div class="mcard"><h3>Hops the packets travelled</h3>
         <div class="mbars" id="mHops"></div></div>
+      <div class="mcard wide"><h3>Traffic history <span class="note" id="mHistoryNote">clock-aligned packet bins; scroll for older history</span></h3>
+        <div class="mtrend-scroll"><canvas id="mTraffic" data-h="230" data-bins="72" role="img" aria-label="Packet traffic history, stacked by packet type"></canvas></div>
+        <h3 class="sub">Observed / estimated free airtime <span class="note">decoded packet airtime only</span></h3>
+        <div class="mtrend-scroll"><canvas id="mAirtime" data-h="200" data-bins="72" role="img" aria-label="Observed and estimated free airtime history"></canvas></div>
+        <p class="note" id="mAirNote"></p>
+        <h3 class="sub">Hop history <span class="note">stacked by path length</span></h3>
+        <div class="mtrend-scroll"><canvas id="mHopTrend" data-h="200" data-bins="72" role="img" aria-label="Packet hop history, stacked by hop count"></canvas></div></div>
       <div class="mcard wide"><h3>Who this radio hears <span class="note">the node each packet came from: the last repeater on its path, or the sender itself for a direct advert</span></h3>
         <div class="mscroll"><table class="mtable" id="mSrc"><thead><tr><th>Heard from</th><th class="n">Packets</th><th class="n">Last</th><th class="n">Avg dBm</th><th class="n">Best dBm</th><th class="n">Avg SNR</th><th>Strength</th></tr></thead><tbody></tbody></table></div></div>
     </div>
@@ -1141,18 +1210,21 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
 
       <section class="panel">
         <h2>Uplink score over time <span class="note">this page keeps the last 15 minutes</span></h2>
+        <div class="chart-controls" aria-label="Uplink score chart controls">
+          <button type="button" id="scoreZoomOut" aria-label="Zoom out score chart">−</button>
+          <button type="button" id="scoreZoomIn" aria-label="Zoom in score chart">+</button>
+          <button type="button" id="scoreReset">Last 15 min</button>
+          <span>Scroll to zoom · drag to pan</span>
+        </div>
         <ul class="chips" id="scoreLegend" aria-label="Legend"></ul>
         <div class="chart" id="scoreChart"></div>
       </section>
 
       <section class="panel">
-        <h2>Battery, last 4 hours</h2>
+        <h2>Battery history <span class="note">up to 4 hours; resets when charging changes</span></h2>
         <div class="chart" id="batChart"></div>
         <p class="legend-note" id="batNote"></p>
       </section>
-    </div>
-
-    <div class="col">
       <section class="panel">
         <h2>Trip map <span class="note" id="tripNote"></span></h2>
         <div class="mapbar">
@@ -1169,36 +1241,9 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
         <p class="legend-note"><span class="sw sw-you"></span> you and the route you drove &nbsp; <span class="sw sw-rep"></span> repeater &nbsp; <span class="sw sw-comp"></span> companion &nbsp; <span class="sw sw-cov"></span> last place with a usable repeater. A faded marker means the node did not announce its position, so it is shown where you heard it. Map data &copy; OpenStreetMap contributors, tiles by CARTO (or OpenStreetMap if you pick it); the map needs an internet connection.</p>
       </section>
 
-      <section class="panel">
-        <h2>Nodes found <span class="note" id="foundNote"></span></h2>
-        <p class="counts" id="foundCounts"></p>
-        <p class="empty" id="foundEmpty">Nothing found yet. Repeaters and companions appear as their adverts are heard. A node shows on the map at the position it announces, or where you heard it.</p>
-        <div class="found-actions">
-          <button id="btnCsv" disabled>Download list (CSV)</button>
-          <button id="btnGeo" disabled>Download map file (GeoJSON)</button>
-          <button id="btnGpx" disabled>Download route + nodes (GPX)</button>
-          <button id="btnClearFound" disabled>Clear found list</button>
-        </div>
-        <p class="hint">These files contain other people's radio names and the places they announce. Keep them private. The page remembers your route and list in this browser until you clear them.</p>
-      </section>
+    </div>
 
-      <section class="panel" id="offPanel">
-        <h2>Offline maps <span class="note" id="offNote"></span></h2>
-        <p class="hint">No signal on the road? Download a region once, at home, load it here, and the map works with no internet. The file stays in this browser.</p>
-        <div class="row off-row">
-          <label for="regSel">Region</label>
-          <select id="regSel" aria-label="Region to download"><option value="">Loading the list...</option></select>
-          <a id="regDl" class="btnlink" href="#" target="_blank" rel="noopener" aria-disabled="true">Download</a>
-        </div>
-        <p class="hint" id="regNote"></p>
-        <div class="row off-row">
-          <label for="mapFile">Load a map file</label>
-          <input type="file" id="mapFile" accept=".pmtiles" multiple>
-        </div>
-        <ul class="offlist" id="offList"></ul>
-        <p class="hint">Download the file with the button, then choose it with "Load a map file". Maps come from OpenStreetMap data (&copy; OpenStreetMap contributors, ODbL), built by Protomaps. Large regions are big files (hundreds of megabytes) and need that much free space in the browser.</p>
-      </section>
-
+    <div class="col">
       <section class="panel">
         <h2>Messages you sent</h2>
         <p class="counts" id="dlCounts"></p>
@@ -1241,6 +1286,35 @@ html.otr #stdBtn, html.otr #tacBtn, html.otr #viewBar { display: none !important
           <pre class="raw" id="termOut" tabindex="0" aria-live="off">Connect the radio to see its output here. When the radio restarts, its start-up messages appear here.</pre>
           <form id="termForm" class="termbar"><input type="text" id="termIn" placeholder="type a command, for example: nova tac" autocomplete="off" spellcheck="false" aria-label="Command to send to the radio"><button type="submit">Send</button></form>
         </details>
+      </section>
+      <section class="panel">
+        <h2>Nodes found <span class="note" id="foundNote"></span></h2>
+        <p class="counts" id="foundCounts"></p>
+        <p class="empty" id="foundEmpty">Nothing found yet. Repeaters and companions appear as their adverts are heard. A node shows on the map at the position it announces, or where you heard it.</p>
+        <div class="found-actions">
+          <button id="btnCsv" disabled>Download list (CSV)</button>
+          <button id="btnGeo" disabled>Download map file (GeoJSON)</button>
+          <button id="btnGpx" disabled>Download route + nodes (GPX)</button>
+          <button id="btnClearFound" disabled>Clear found list</button>
+        </div>
+        <p class="hint">These files contain other people's radio names and the places they announce. Keep them private. The page remembers your route and list in this browser until you clear them.</p>
+      </section>
+
+      <section class="panel" id="offPanel">
+        <h2>Offline maps <span class="note" id="offNote"></span></h2>
+        <p class="hint">No signal on the road? Download a region once, at home, load it here, and the map works with no internet. The file stays in this browser.</p>
+        <div class="row off-row">
+          <label for="regSel">Region</label>
+          <select id="regSel" aria-label="Region to download"><option value="">Loading the list...</option></select>
+          <a id="regDl" class="btnlink" href="#" target="_blank" rel="noopener" aria-disabled="true">Download</a>
+        </div>
+        <p class="hint" id="regNote"></p>
+        <div class="row off-row">
+          <label for="mapFile">Load a map file</label>
+          <input type="file" id="mapFile" accept=".pmtiles" multiple>
+        </div>
+        <ul class="offlist" id="offList"></ul>
+        <p class="hint">Download the file with the button, then choose it with "Load a map file". Maps come from OpenStreetMap data (&copy; OpenStreetMap contributors, ODbL), built by Protomaps. Large regions are big files (hundreds of megabytes) and need that much free space in the browser.</p>
       </section>
     </div>
   </div>
@@ -1311,6 +1385,7 @@ const S = {
   frame: null, frames: [], hist: [],          // hist: {t, best, scores:{id:score}}
   lastAt: 0, mode: "off", port: null, reader: null, writer: null, keep: null, demo: null,
   colorOf: {}, nextColor: 0,
+  scoreView: { minutes: 15, end: 0, panning: false },
 };
 const SERIES = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6"];
 function colorFor(id) { if (!(id in S.colorOf)) S.colorOf[id] = SERIES[S.nextColor++ % SERIES.length]; return S.colorOf[id]; }   // color follows the repeater, not its rank
@@ -1351,56 +1426,153 @@ function onFrame(f, ts) {
 /*PET-BEGIN*/
 const PET = {
   ask: false, probe: 0, seen: 0, seq: -1, fb: new Uint8Array(1024), meta: null, last: 0, grid: false, lastSeq: 0,
-  decode(b64) {                       // base64 -> run-length bytes -> 1024 delta bytes
-    const bin = atob(b64), out = new Uint8Array(1024); let o = 0;
-    for (let i = 0; i < bin.length && o < 1024;) {
+  fmt: { w: 128, h: 64, bpp: 1, eink: false, rb: 16, bytes: 1024 }, pal: null,    // what the picture is: the original 128x64 one-colour screen until a key picture says otherwise
+  decode(b64, n) {                    // base64 -> run-length bytes -> n bytes (1024 for the 128x64 screen)
+    const bin = atob(b64), size = n || 1024, out = new Uint8Array(size); let o = 0;
+    for (let i = 0; i < bin.length && o < size;) {
       const c = bin.charCodeAt(i++);
       if (c) out[o++] = c; else { const run = bin.charCodeAt(i++) | 0; o += run; }
     }
     return out;
   },
+  unchain(t) { for (let i = 1; i < t.length; i++) t[i] ^= t[i - 1]; return t; },      // colour pictures: every byte was also XORed with the byte before it
+  // 16 RGB565 colours (2 bytes each, big endian) as 64 hex characters or base64 -> 16 css colours; null when it is neither
+  palette(s) {
+    if (typeof s !== "string") return null;
+    let b = [];
+    if (/^(?:[0-9a-fA-F]{4}){1,16}$/.test(s)) { for (let i = 0; i < s.length; i += 2) b.push(parseInt(s.substr(i, 2), 16)); }
+    else { if (!/^[A-Za-z0-9+\/]+={0,2}$/.test(s)) return null; try { const bin = atob(s); for (let i = 0; i < bin.length; i++) b.push(bin.charCodeAt(i) & 255); } catch (e) { return null; } }
+    if (b.length < 2 || b.length % 2 || b.length > 32) return null;
+    const out = [];
+    for (let i = 0; i < 16; i++) {
+      const v = i * 2 + 1 < b.length ? (b[i * 2] << 8 | b[i * 2 + 1]) : 0, r = (v >> 11) & 31, g = (v >> 5) & 63, bl = v & 31;
+      out.push("rgb(" + (r << 3 | r >> 2) + "," + (g << 2 | g >> 4) + "," + (bl << 3 | bl >> 2) + ")");
+    }
+    return out;
+  },
+  // What a key picture says about the screen. No w/h = 128x64. "e":1 = e-ink (black on white, still). "c" an object {b:4,p:palette} = colour;
+  // "c" a number is the old pet count and means nothing here. null = the picture cannot be used (it is refused, the last one stays).
+  format(p) {
+    let w = 128, h = 64;
+    if (p.w !== undefined || p.h !== undefined) {
+      w = p.w === undefined ? 128 : p.w; h = p.h === undefined ? 64 : p.h;
+      if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 512 || h > 512) return null;
+    }
+    const eink = p.e === 1 || p.e === true;
+    let bpp = 1, pal = null;
+    if (p.c && typeof p.c === "object" && !Array.isArray(p.c)) {
+      if (p.c.b !== 4) return null;
+      pal = this.palette(p.c.p); if (!pal) return null;
+      if (eink) pal = null; else bpp = 4;          // an e-ink screen is always black and white
+    }
+    const rb = bpp === 4 ? (w + 1) >> 1 : (w + 7) >> 3, bytes = rb * h;
+    if (bytes > 40000) return null;
+    return { w, h, bpp, eink, rb, bytes, pal };
+  },
   // returns true when a picture was updated
   apply(p) {
     if (!p || typeof p.d !== "string") return false;
     if (p.k) {
-      this.fb = this.decode(p.d); this.seq = p.s;
-      if (p.n) this.meta = { n: p.n, u: p.u || "", x: p.x, m: p.m, c: p.c, i: p.i };
+      const f = this.format(p); if (!f) { this.seq = -1; return false; }
+      const t = this.decode(p.d, f.bytes); if (f.bpp === 4) this.unchain(t);
+      this.fb = t; this.seq = p.s; this.fmt = f; this.pal = f.pal;
+      this.meta = { n: typeof p.n === "string" ? p.n : "", u: p.u || "", x: p.x, m: p.m, c: typeof p.c === "number" ? p.c : undefined, i: p.i };
     } else {
       if (this.seq < 0 || p.s !== this.seq + 1) { this.seq = -1; return false; }    // missed one: wait for the next key frame
-      const d = this.decode(p.d); for (let i = 0; i < 1024; i++) this.fb[i] ^= d[i];
+      const d = this.decode(p.d, this.fb.length); if (this.fmt.bpp === 4) this.unchain(d);
+      for (let i = 0; i < this.fb.length; i++) this.fb[i] ^= d[i];
       this.seq = p.s;
     }
     return true;
   },
-  reset() { this.seq = -1; this.seen = 0; this.meta = null; this.fb = new Uint8Array(1024); this.asks = 0; this.nosupport = false; },
+  reset() { this.seq = -1; this.seen = 0; this.meta = null; this.fb = new Uint8Array(1024); this.fmt = { w: 128, h: 64, bpp: 1, eink: false, rb: 16, bytes: 1024 }; this.pal = null; this.asks = 0; this.nosupport = false; },
 };
 /*PET-END*/
 const petCtx = () => $("petCanvas").getContext("2d");
 function petDraw() {
-  const c = $("petCanvas"), x = c.getContext("2d"), K = 8, g = PET.grid ? 1 : 0;
-  x.fillStyle = "#05080c"; x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = "#8fd4ff";
-  for (let y = 0; y < 64; y++) for (let b = 0; b < 16; b++) {
-    const v = PET.fb[y * 16 + b]; if (!v) continue;
-    for (let k = 0; k < 8; k++) if (v & (0x80 >> k)) x.fillRect((b * 8 + k) * K, y * K, K - g, K - g);
+  const c = $("petCanvas"), x = c.getContext("2d"), f = PET.fmt, K = 8, g = PET.grid ? 1 : 0;
+  if (f.w === 128 && f.h === 64 && f.bpp === 1 && !f.eink) {          // the original screen, drawn exactly as it always was
+    if (c.width !== 1024 || c.height !== 512) { c.width = 1024; c.height = 512; c.style.aspectRatio = ""; }
+    x.fillStyle = "#05080c"; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = "#8fd4ff";
+    for (let y = 0; y < 64; y++) for (let b = 0; b < 16; b++) {
+      const v = PET.fb[y * 16 + b]; if (!v) continue;
+      for (let k = 0; k < 8; k++) if (v & (0x80 >> k)) x.fillRect((b * 8 + k) * K, y * K, K - g, K - g);
+    }
+    return;
+  }
+  // any other screen: the canvas takes the screen's shape, each pixel is drawn k times as big
+  const k = Math.max(1, Math.floor(1024 / f.w)), W = f.w * k, H = f.h * k, colour = f.bpp === 4;
+  if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+  c.style.aspectRatio = f.w + " / " + f.h;
+  const cols = colour ? PET.pal : (f.eink ? ["#ffffff", "#000000"] : ["#05080c", "#8fd4ff"]);
+  x.fillStyle = cols[0]; x.fillRect(0, 0, W, H);                       // index 0 is the screen's background
+  const at = colour ? (X, Y) => { const v = PET.fb[Y * f.rb + (X >> 1)]; return X & 1 ? v & 15 : v >> 4; }
+                    : (X, Y) => (PET.fb[Y * f.rb + (X >> 3)] >> (7 - (X & 7))) & 1;
+  for (let Y = 0; Y < f.h; Y++) for (let X = 0; X < f.w;) {
+    const v = at(X, Y); if (!v) { X++; continue; }
+    let e = X + 1; if (!g) while (e < f.w && at(e, Y) === v) e++;       // a run of one colour is one rectangle
+    x.fillStyle = cols[v]; x.fillRect(X * k, Y * k, (e - X) * k - g, k - g); X = e;
   }
 }
 function petCaption() {
   const m = PET.meta, el = $("petCap"); if (!m) return;
   const kind = m.n.charAt(0).toUpperCase() + m.n.slice(1);
-  const name = m.u ? m.u + " the " + kind.toLowerCase() : kind;
-  const age = m.m < 24 ? m.m + " months old" : (m.m % 12 ? Math.floor(m.m / 12) + " yr " + (m.m % 12) + " mo" : (m.m / 12) + " years old");
-  el.textContent = name + " \u00b7 " + (m.x ? "female" : "male") + " \u00b7 " + age + (m.c > 1 ? " \u00b7 pet " + m.i + " of " + m.c : "");
+  const name = m.n ? (m.u ? m.u + " the " + kind.toLowerCase() : kind) : (m.u || "Your pet");
+  const parts = [name];
+  if (m.x != null) parts.push(m.x ? "female" : "male");
+  if (m.m != null) parts.push(m.m < 24 ? m.m + " months old" : (m.m % 12 ? Math.floor(m.m / 12) + " yr " + (m.m % 12) + " mo" : (m.m / 12) + " years old"));
+  if (m.c > 1) parts.push("pet " + m.i + " of " + m.c);
+  const f = PET.fmt; if (!(f.w === 128 && f.h === 64 && f.bpp === 1 && !f.eink)) parts.push(f.w + "\u00d7" + f.h + (f.eink ? " e-ink" : f.bpp === 4 ? " colour" : ""));
+  el.textContent = parts.join(" \u00b7 ");
   el.classList.remove("stale");
   const inp = $("petNameIn");
   if (inp.disabled) { inp.disabled = false; $("petNameSet").disabled = false; }
   if (document.activeElement !== inp && inp.dataset.shown !== m.u + "|" + m.i) { inp.value = m.u; inp.dataset.shown = m.u + "|" + m.i; }
 }
+/* Screen-off screensaver. The radio sends {"screen":"off"} once when its screen goes to sleep; the pet area is blanked and a fish and a wolf bounce on it
+   until the next picture (key or delta) arrives. It changes only on messages and animation frames: no timer, no heartbeat. */
+const SAVER = { off: false, raf: 0, last: 0, acc: 0, STEP: 1000 / 60, sp: [] };
+function saverInit(W, H) {
+  const s = Math.max(8, Math.round(H / 8));      // emoji size; each one has its own start, speed and direction
+  SAVER.sp = [{ e: "\u{1F41F}", x: W * .2, y: H * .3, vx: W * .0042, vy: H * .0056, s }, { e: "\u{1F43A}", x: W * .6, y: H * .6, vx: -W * .0031, vy: -H * .0047, s }];
+}
+function saverStep(W, H) {                       // one fixed step: move, bounce off the edges like a DVD logo
+  SAVER.sp.forEach((p) => {
+    const b = p.s * 1.25;
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) { p.x = 0; p.vx = Math.abs(p.vx); } else if (p.x > W - b) { p.x = Math.max(0, W - b); p.vx = -Math.abs(p.vx); }
+    if (p.y < 0) { p.y = 0; p.vy = Math.abs(p.vy); } else if (p.y > H - b) { p.y = Math.max(0, H - b); p.vy = -Math.abs(p.vy); }
+  });
+}
+function saverFrame(t) {
+  if (!SAVER.off) { SAVER.raf = 0; return; }
+  const c = $("petCanvas"), x = c.getContext("2d");
+  if (!SAVER.last) SAVER.last = t;
+  SAVER.acc = Math.min(SAVER.acc + t - SAVER.last, SAVER.STEP * 5); SAVER.last = t;
+  while (SAVER.acc >= SAVER.STEP) { saverStep(c.width, c.height); SAVER.acc -= SAVER.STEP; }
+  x.fillStyle = "#05080c"; x.fillRect(0, 0, c.width, c.height);
+  SAVER.sp.forEach((p) => { x.font = p.s + "px sans-serif"; x.textBaseline = "top"; x.fillText(p.e, p.x, p.y); });
+  SAVER.raf = requestAnimationFrame(saverFrame);
+}
+function petSleep() {
+  if (SAVER.off) return;                         // the radio says it once; a repeat changes nothing
+  const c = $("petCanvas"), el = $("petCap");
+  SAVER.off = true; SAVER.last = 0; SAVER.acc = 0; saverInit(c.width, c.height);
+  el.textContent = "Radio screen asleep"; el.classList.remove("stale"); petState("");
+  SAVER.raf = requestAnimationFrame(saverFrame);
+}
+function petWake() {
+  if (!SAVER.off) return;
+  SAVER.off = false; if (SAVER.raf) cancelAnimationFrame(SAVER.raf); SAVER.raf = 0;
+  $("petCap").textContent = "Waiting for the pet\u2026";      // petCaption() replaces it as soon as a picture is applied
+}
 function petState(msg, bad) { const e = $("petState"); e.textContent = msg; e.classList.toggle("bad", !!bad); e.hidden = !msg; }
 function petAsk() {                    // called with every keep-alive while connected
+  if (PC.dx && !pcCap("pet")) return;     // a DX-Pro radio without a pet is not asked for one
   send("nova pet");
   PET.asks = (PET.asks || 0) + 1;
-  if (!PET.seen) {
+  if (!PET.seen && !SAVER.off) {
     if (PET.nosupport) petState("This radio's firmware has no pet. The pet needs the LODESTAR ORION + Pet firmware, version 0.3.0 or newer (see the pet repository).", true);
     else if (PET.asks > 3) petState("No pet picture yet. The pet needs the LODESTAR ORION + Pet firmware, version 0.3.0 or newer, on a radio that has its own screen. Still asking\u2026", true);
     else petState("Asking the radio for its pet\u2026");
@@ -1409,18 +1581,23 @@ function petAsk() {                    // called with every keep-alive while con
 }
 function onPetLine(line) {
   let o; try { o = JSON.parse(line); } catch (e) { return; }
-  if (!PET.apply(o.pet)) return;
+  if (!o) return;
+  if (o.screen === "off") { petSleep(); return; }
+  const woke = SAVER.off && !!o.pet && typeof o.pet === "object";      // any picture, key or delta, ends the screen-off state
+  if (woke) { petWake(); PET.last = Date.now(); }
+  if (!PET.apply(o.pet)) { if (woke) { petDraw(); petCaption(); } return; }
   if (!PET.seen) cmdLog("pet: picture stream started");
   PET.seen++; PET.last = Date.now(); petState("");
   petDraw(); petCaption();
 }
 setInterval(() => {                    // say so when the pictures stop coming
-  if (PET.seen && Date.now() - PET.last > 4000 && S.mode === "serial") { $("petCap").textContent = "No new picture. Is the radio still plugged in?"; $("petCap").classList.add("stale"); }
+  if (PET.seen && !SAVER.off && Date.now() - PET.last > (PET.fmt.eink ? 30000 : 4000) && S.mode === "serial") { $("petCap").textContent = "No new picture. Is the radio still plugged in?"; $("petCap").classList.add("stale"); }
 }, 2000);
 $("btnPet").addEventListener("click", () => { $("petPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("petFull").focus({ preventScroll: true }); });
 $("petFull").addEventListener("click", () => { const b = $("petBox"); if (document.fullscreenElement) document.exitFullscreen(); else if (b.requestFullscreen) b.requestFullscreen(); });
 $("petPng").addEventListener("click", () => { $("petCanvas").toBlob((bl) => { const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "pet.png"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }); });
 function petNameSend() {
+  if (PC.dx && !pcCap("petname")) return;
   const v = $("petNameIn").value.replace(/[^A-Za-z0-9 .\-_'!?]/g, "").trim().slice(0, 7);
   send("nova petname " + (v || "-"));
   $("petNameIn").dataset.shown = ""; cmdLog(v ? "Naming the pet " + v + "\u2026" : "Clearing the pet's name\u2026");
@@ -1428,6 +1605,243 @@ function petNameSend() {
 $("petNameSet").addEventListener("click", petNameSend);
 $("petNameIn").addEventListener("keydown", (e) => { if (e.key === "Enter") petNameSend(); });
 $("petGrid").addEventListener("click", () => { PET.grid = !PET.grid; $("petGrid").setAttribute("aria-pressed", PET.grid); petDraw(); });
+
+/*PETCTL-START*/
+/* ---- pet actions, mesh contacts and radio keys. All of it stays hidden until the radio has answered "nova hello" and is an Orion radio.
+   Everything sent is one fixed line; everything the radio sends back is shown as plain text only (textContent, never HTML). ---- */
+const PC = {
+  ok: false, orion: false, dx: false, caps: null, list: null, sig: "", pend: null, sticky: 0, holdMs: 700, holdTimer: null,
+  reset() { this.ok = false; this.orion = false; this.dx = false; this.caps = null; this.list = null; this.sig = ""; this.pend = null; this.sticky = 0; if (typeof S !== "undefined") S.dxpro = false; clearTimeout(this.holdTimer); this.holdTimer = null; clearTimeout(this.baudTimer); this.baudTimer = null; this.baudPend = 0; },
+};
+const PC_FIXED = ["nova clean", "nova feed", "nova guess higher", "nova guess lower", "nova guess new", "nova contacts",
+  "nova key up", "nova key down", "nova key left", "nova key right", "nova key enter", "nova key back", "nova key hold-enter"];
+const PC_TARGET = /^nova (ping|sendpet) [0-9a-f]{12}$/;
+/* What a LoRagotchi DX-Pro radio must answer to "nova hello" (one line, and nothing is shown until it arrives):
+   {"ed":"dx-pro","nova":{"v":1,"caps":{"pet":1,"mesh":0,"contacts":1,"petname":1,"keys":0,"clean":0,"feed":0,"guess":0,"ping":0,"sendpet":0}}}
+   (A radio that can change its USB speed adds "baud":1. The speed list shows next to Connect before any hello, so any radio can be looked for at a chosen speed; after the hello it stays only for a radio with "baud".)
+   Every control is shown only when its capability is a number above 0 (or true). A missing, unknown or non-number capability means hidden; unknown keys are ignored.
+   A LODESTAR ORION radio (ed "orion") keeps the old behaviour: all controls once it has answered. */
+const PC_CAPS = ["pet", "mesh", "contacts", "petname", "keys", "clean", "feed", "guess", "ping", "sendpet", "baud"];
+const PC_CMDCAP = { "nova clean": "clean", "nova feed": "feed", "nova guess higher": "guess", "nova guess lower": "guess", "nova guess new": "guess", "nova contacts": "contacts",
+  "nova key up": "keys", "nova key down": "keys", "nova key left": "keys", "nova key right": "keys", "nova key enter": "keys", "nova key back": "keys", "nova key hold-enter": "keys" };
+const pcReady = () => S.mode === "serial" && PC.ok && (PC.orion || PC.dx);
+const pcCap = (k) => (PC.dx ? !!(PC.caps && PC.caps[k] === true) : PC.orion);   // orion: everything; dx-pro: only what its hello listed
+function pcSync() {                    // show or hide the whole block, and each control by capability
+  const b = $("pcBox"); if (!b) return;
+  const ready = pcReady(), on = (k) => ready && pcCap(k);
+  const set = (id, show) => { const e = $(id); if (e && e.hidden === show) e.hidden = !show; };
+  const pet = on("clean") || on("feed") || on("guess"), mesh = on("contacts"), keys = on("keys");
+  set("pcPet", pet); set("pcClean", on("clean")); set("pcFeed", on("feed")); set("pcGuessPlay", on("guess"));
+  if (!on("guess")) set("pcGuessRow", false);                      // the higher/lower row is opened by the Play button
+  set("pcMesh", mesh); set("pcRefresh", mesh); set("pcContacts", mesh); set("pcMeshNote", mesh);
+  set("pcKeys", keys); set("pcKeyClean", keys && on("clean"));
+  ["pcKeyUp", "pcKeyDown", "pcKeyLeft", "pcKeyRight", "pcKeyEnter", "pcKeyBack"].forEach((id) => set(id, keys));
+  set("pcBox", pet || mesh || keys);
+  const sig = (on("ping") ? "p" : "") + (on("sendpet") ? "s" : "");
+  if (sig !== PC.sig) { PC.sig = sig; if (PC.list) pcShowContacts(PC.list); }     // Ping / Send pet buttons follow their own capability
+  set("petNameBox", S.mode === "demo" ? true : on("petname"));
+  if (on("petname")) { const ni = $("petNameIn"), ns = $("petNameSet"); if (ni) ni.disabled = false; if (ns) ns.disabled = false; }   // the box works as soon as the hello says petname, not only after a pet picture has been drawn
+  if (PC.dx) {                                                     // a DX-Pro radio decides which panels exist
+    set("petPanel", pcCap("pet")); set("btnPet", pcCap("pet"));
+    if (!pcCap("mesh")) set("meshPanel", false);                   // (the mesh panel opens itself when mesh data arrives, but only if the capability is on)
+  }
+  const bb = $("baudBox"); if (bb) { const on = pcBaudVisible(); if (bb.hidden === on) bb.hidden = !on; }       // the speed list: shown until a hello arrives, afterwards only for a DX-Pro radio whose hello lists "baud"
+  const bs = $("baudSel"); if (bs) { bs.disabled = !!PC.baudPend || !!PC.probe; if (!PC.baudPend) bs.value = String(S.baud || 115200); }   // locked while a speed change or the probe is under way
+  if (!ready) { clearTimeout(PC.holdTimer); PC.holdTimer = null; }
+}
+function pcNote(orion) { PC.ok = true; if (orion && !PC.dx) PC.orion = true; pcSync(); }   // the radio answered: a frame, a mesh or pet line, or the bare "OK". A DX-Pro radio is never promoted to Orion by it.
+function pcBrand() {                   // title and brand, like the Orion branch (text only, no HTML)
+  const t = "LORAGOTCHI DX-PRO dashboard";
+  if (document.title !== t) document.title = t;
+  const br = document.querySelector(".brand");
+  if (br && br.textContent !== "LORAGOTCHI DX-PROdashboard") { const sm = document.createElement("small"); sm.textContent = "dashboard"; br.replaceChildren(); br.appendChild(document.createTextNode("LORAGOTCHI DX-PRO")); br.appendChild(sm); }
+}
+function pcHello(o) {                  // true when o is a known DX-Pro hello; anything else is left alone
+  const n = o && o.nova, c = n && n.caps;
+  if (!o || o.ed !== "dx-pro" || !n || typeof n !== "object" || typeof n.v !== "number" || !(N(n.v) >= 1) || !c || typeof c !== "object" || Array.isArray(c)) return false;
+  const caps = {};
+  PC_CAPS.forEach((k) => { const v = c[k]; caps[k] = typeof v === "number" ? N(v) > 0 : v === true; });
+  PC.dx = true; PC.orion = false; PC.ok = true; PC.caps = caps;
+  S.dxpro = true; S.lastAt = performance.now();                    // a hello is a sign of life: the status reads "Live", not "waiting for data"
+  pcBrand(); pcSync(); return true;
+}
+function pcSend(cmd, logId) {
+  if (!pcReady()) return false;
+  if (PC_FIXED.indexOf(cmd) < 0 && !PC_TARGET.test(cmd) && !PC_BAUDLINE.test(cmd)) return false;          // only the lines this page knows, plus ping/sendpet to a 12-hex id
+  if (PC_BAUDLINE.test(cmd)) { if (!pcBaudOn()) return false; send(cmd); return true; }       // the speed change has its own answer line, see onNovaReply
+  const cap = PC_CMDCAP[cmd] || (PC_TARGET.test(cmd) ? cmd.split(" ")[1] : ""); if (!cap || !pcCap(cap)) return false;   // and only if the radio said it can do it
+  PC.pend = { log: logId, until: Date.now() + 8000 };
+  const e = $(logId); if (e) e.textContent = "Sent: " + cmd;
+  send(cmd); return true;
+}
+function pcReply(t) {                  // every "# ..." line from the radio; true means "leave the command log alone"
+  if (t === "OK") { pcNote(false); return Date.now() < PC.sticky; }              // bare OK is only the keep-alive's answer to "nova hello"
+  const p = PC.pend;
+  if (p && Date.now() < p.until) { PC.pend = null; PC.sticky = Date.now() + 10000; const e = $(p.log); if (e) e.textContent = t; }
+  return false;
+}
+function pcParseContacts(line) {       // {"contacts":[{"n":"name","id":"12hexchars"}, ...]}, at most 16; null if it is not that
+  let o; try { o = JSON.parse(line); } catch (e) { return null; }
+  if (!o || !Array.isArray(o.contacts)) return null;
+  const out = [];
+  for (const c of o.contacts) {
+    if (out.length >= 16) break;
+    if (!c || typeof c.id !== "string" || !/^[0-9a-fA-F]{12}$/.test(c.id)) continue;   // the id goes into a command, so it must be 12 hex characters
+    out.push({ n: String(c.n == null ? "" : c.n).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 32), id: c.id.toLowerCase() });
+  }
+  return out;
+}
+function pcShowContacts(list) {
+  PC.list = list;
+  const ul = $("pcContacts"); ul.replaceChildren();
+  list.forEach((c) => {
+    const li = document.createElement("li"), nm = document.createElement("span"), id = document.createElement("span");
+    nm.className = "nm"; nm.textContent = c.n || "(no name)"; id.className = "id"; id.textContent = c.id;
+    const ping = document.createElement("button"), pet = document.createElement("button");
+    ping.textContent = "Ping"; pet.textContent = "Send pet";
+    ping.setAttribute("aria-label", "Ping " + (c.n || c.id)); pet.setAttribute("aria-label", "Send pet to " + (c.n || c.id));
+    ping.addEventListener("click", () => pcSend("nova ping " + c.id, "pcMeshLog"));
+    pet.addEventListener("click", () => pcSend("nova sendpet " + c.id, "pcMeshLog"));
+    li.appendChild(nm); li.appendChild(id); if (pcCap("ping")) li.appendChild(ping); if (pcCap("sendpet")) li.appendChild(pet); ul.appendChild(li);
+  });
+  $("pcMeshNote").textContent = list.length ? list.length + (list.length === 1 ? " contact" : " contacts") : "No contact the radio can reach yet.";
+}
+function onContactsLine(line) {
+  if (PC.dx && !pcCap("contacts")) return;                          // this radio did not say it has contacts
+  const list = pcParseContacts(line); if (!list) return;
+  pcShowContacts(list);
+  const p = PC.pend; if (p && p.log === "pcMeshLog") PC.pend = null;
+  const msg = "contacts: " + list.length + (list.length === 1 ? " contact" : " contacts") + " from the radio";
+  $("pcMeshLog").textContent = msg; cmdLog(msg); PC.sticky = Date.now() + 10000;
+}
+function pcEnterDown() { clearTimeout(PC.holdTimer); PC.holdTimer = setTimeout(() => { PC.holdTimer = null; pcSend("nova key hold-enter", "pcKeyLog"); }, PC.holdMs); }
+function pcEnterUp() { if (!PC.holdTimer) return; clearTimeout(PC.holdTimer); PC.holdTimer = null; pcSend("nova key enter", "pcKeyLog"); }   // let go before the timer: a short press
+function pcEnterCancel() { clearTimeout(PC.holdTimer); PC.holdTimer = null; }
+const PC_BTNS = { pcClean: ["nova clean", "pcPetLog"], pcFeed: ["nova feed", "pcPetLog"], pcGuessHi: ["nova guess higher", "pcGuessLog"], pcGuessLo: ["nova guess lower", "pcGuessLog"],
+  pcRefresh: ["nova contacts", "pcMeshLog"], pcKeyUp: ["nova key up", "pcKeyLog"], pcKeyDown: ["nova key down", "pcKeyLog"], pcKeyLeft: ["nova key left", "pcKeyLog"],
+  pcKeyRight: ["nova key right", "pcKeyLog"], pcKeyBack: ["nova key back", "pcKeyLog"], pcKeyClean: ["nova clean", "pcKeyLog"] };
+Object.keys(PC_BTNS).forEach((id) => { const b = $(id); if (b) b.addEventListener("click", () => pcSend(PC_BTNS[id][0], PC_BTNS[id][1])); });
+$("pcGuessPlay").addEventListener("click", () => { $("pcGuessRow").hidden = false; pcSend("nova guess new", "pcGuessLog"); });
+(() => {
+  const b = $("pcKeyEnter");
+  b.addEventListener("pointerdown", (e) => { if (e.button) return; pcEnterDown(); });
+  b.addEventListener("pointerup", pcEnterUp);
+  b.addEventListener("pointerleave", pcEnterCancel);
+  b.addEventListener("pointercancel", pcEnterCancel);
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  b.addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); if (!e.repeat) pcEnterDown(); });
+  b.addEventListener("keyup", (e) => { if (e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); pcEnterUp(); });
+})();
+/* ---- USB serial speed. The list has the four speeds of the radio's Options > Display > Serial speed menu and sits next to Connect.
+   Connect: a circular probe. It starts at the listed speed, sends "nova hello" at each speed (about 1 s each) and goes on with the other speeds in order, wrapping, for up to 3 passes.
+   A speed counts only when a complete line arrives that parses as JSON and has a "nova" key (garbled bytes never count). Nothing is ever changed on the radio by the probe.
+   Once connected, a radio whose hello lists "baud" can be told to change: picking a speed sends "nova baud N"; the radio answers {"nova_ok":"baud","rate":N}
+   (the page then closes the port: the radio uses N after its next restart, and the page looks for it again when it is back) or {"nova_error":"baud_unsupported"} (nothing changes). ---- */
+const PC_BAUDS = [115200, 230400, 460800, 921600];
+const PC_BAUDLINE = /^nova baud (115200|230400|460800|921600)$/;
+const pcBaudOn = () => pcReady() && PC.dx && !!(PC.caps && PC.caps.baud === true);          // may "nova baud" be sent?
+const pcBaudVisible = () => !(PC.dx || PC.orion) || pcBaudOn();                                // the list shows before any hello; after it, only for a radio with "baud"
+const PC_PROBE_MS = 1000, PC_PROBE_PASSES = 3;
+const PC_NOREPLY = "No reply at any speed. Set the same speed in the radio's Options > Display > Serial speed, reboot the radio, then connect again.";
+function pcProbeSeq(start) {          // the speeds to try, in order: the listed one first, then the others, wrapping, three passes
+  const i = PC_BAUDS.indexOf(start), s = i < 0 ? 0 : i, out = [];
+  for (let p = 0; p < PC_PROBE_PASSES; p++) for (let k = 0; k < PC_BAUDS.length; k++) out.push(PC_BAUDS[(s + k) % PC_BAUDS.length]);
+  return out;
+}
+function pcProbeBegin() {             // a fresh Connect: S.baud becomes the speed in the list and the probe starts there (a probe already under way is left alone)
+  if (PC.probe) return PC.probe;
+  const sel = $("baudSel"); let start = Number(sel && sel.value);
+  if (PC_BAUDS.indexOf(start) < 0) start = PC_BAUDS.indexOf(S.baud) >= 0 ? S.baud : 115200;
+  S.baud = start; PC.probe = { seq: pcProbeSeq(start), i: 0, start: start, timer: null };
+  return PC.probe;
+}
+function pcProbeStop() { const p = PC.probe; if (p) clearTimeout(p.timer); PC.probe = null; }
+function pcProbeStart() {             // the port is open at the speed to try: ask once, then wait
+  const p = PC.probe; if (!p) return false;
+  clearTimeout(p.timer);
+  setStatus("waiting", "Looking for the radio at " + p.seq[p.i] + " baud (try " + (p.i + 1) + " of " + p.seq.length + ")\u2026");
+  send("nova hello");
+  p.timer = setTimeout(pcProbeStep, PC_PROBE_MS);
+  return true;
+}
+function pcProbeLine(line) {          // every line while probing: only a whole JSON line with a "nova" key ends it
+  const p = PC.probe; if (!p || line[0] !== "{") return false;
+  let o; try { o = JSON.parse(line); } catch (e) { return false; }
+  if (!o || typeof o !== "object" || Array.isArray(o) || !Object.prototype.hasOwnProperty.call(o, "nova")) return false;
+  clearTimeout(p.timer); PC.probe = null;
+  const rate = S.baud; const bs = $("baudSel"); if (bs) bs.value = String(rate);
+  termAdd("radio answered at " + rate + " baud", "ev"); notice(""); setStatus("waiting", "Connected, waiting for data");
+  if (S.startKeep) { const f = S.startKeep; S.startKeep = null; f(); }
+  return true;
+}
+async function pcProbeStep() {        // one second passed with no valid answer: next speed, or give up after the last
+  const p = PC.probe; if (!p) return;
+  p.timer = null;
+  if (p.i + 1 >= p.seq.length) { pcProbeFail(); return; }
+  p.i++; termAdd("no valid answer, trying " + p.seq[p.i] + " baud", "ev");
+  if (!(await pcBaudReopen(p.seq[p.i]))) pcProbeStop();
+}
+async function pcProbeFail() {        // nothing answered at any speed: close the link, say what to do. The radio is never changed.
+  const p = PC.probe; PC.probe = null; if (p) S.baud = p.start;
+  await pcCloseLink(); autoFlag(false); S.kept = null;
+  setStatus("off", "Not connected"); notice(PC_NOREPLY); cmdLog(PC_NOREPLY); termAdd("no reply at any speed", "ev");
+}
+function pcBaudDone(msg) {            // the change is over (answered, refused or not answered): the list goes back to the speed really in use
+  clearTimeout(PC.baudTimer); PC.baudTimer = null; PC.baudPend = 0;
+  const bs = $("baudSel"); if (bs) { bs.disabled = false; bs.value = String(S.baud || 115200); }
+  if (msg) cmdLog(msg);
+}
+function pcBaudChange() {             // the person picked a speed
+  const bs = $("baudSel"), rate = Number(bs.value), cur = S.baud || 115200;
+  if (S.mode !== "serial") { if (PC_BAUDS.indexOf(rate) >= 0) S.baud = rate; else bs.value = String(cur); return; }   // not connected: this is where the next Connect starts
+  if (PC.probe) { bs.value = String(cur); return; }                  // the probe is choosing the speed
+  if (PC.baudPend || PC_BAUDS.indexOf(rate) < 0 || rate === cur || !pcSend("nova baud " + rate, "")) { bs.value = String(PC.baudPend || cur); return; }
+  PC.baudPend = rate; bs.disabled = true;
+  cmdLog("Asking the radio to switch the USB link to " + rate + " baud\u2026");
+  clearTimeout(PC.baudTimer); PC.baudTimer = setTimeout(() => { if (PC.baudPend) pcBaudDone("The radio did not answer the speed change, so the link stays at " + (S.baud || 115200) + " baud."); }, 6000);
+}
+// one line starting {"nova_ok" or {"nova_error"; only the speed answers matter here, anything else is ignored (as it always was)
+function onNovaReply(line) {
+  let o; try { o = JSON.parse(line); } catch (e) { return; }
+  if (!o || typeof o !== "object" || !PC.baudPend) return;           // nobody asked, so nothing to do
+  if (o.nova_ok === "baud") {
+    if (typeof o.rate !== "number" || PC_BAUDS.indexOf(o.rate) < 0) { pcBaudDone("The radio answered the speed change with a speed this page cannot use (" + String(o.rate).slice(0, 12) + "). The link stays at " + (S.baud || 115200) + " baud."); return; }
+    const rate = o.rate; S.baud = rate; pcBaudDone(""); pcBaudApplied(rate);
+  } else if (o.nova_error === "baud_unsupported") pcBaudDone("This radio cannot use " + PC.baudPend + " baud. The link stays at " + (S.baud || 115200) + " baud.");
+}
+// Web Serial cannot change the speed of an open port, so: release DTR/RTS in one step (the radio is not restarted by that) and close. Gives back the (closed) port, or null.
+async function pcCloseLink() {
+  const port = S.port; if (!port || S.mode !== "serial" || S.reopening) return null;
+  S.reopening = true;
+  try {
+    const done = new Promise((res) => { S.loopEnd = res; });
+    try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) { /* this browser cannot set them */ }
+    S.manual = true;                                                    // so the read loop's end is a planned one
+    await disconnect(true);                                             // lets go of the streams and closes the port
+    await Promise.race([done, new Promise((r) => setTimeout(r, 2000))]);
+    S.loopEnd = null;
+  } finally { S.reopening = false; }
+  return port;
+}
+async function pcBaudReopen(rate) {   // a probe step: close, open again at the next speed
+  if (!S.port || S.mode !== "serial" || S.reopening) return false;
+  S.baud = rate; termAdd("reopening the port at " + rate + " baud", "ev");
+  const port = await pcCloseLink(); if (!port) return false;
+  connect(port);                                                        // opens at S.baud and sends the next hello
+  return true;
+}
+async function pcBaudApplied(rate) {  // the radio said ok: it uses the new speed after its next restart, so close now and look for it again when it is back
+  if (!S.port || S.mode !== "serial" || S.reopening) return false;
+  S.baud = rate;
+  if (!(await pcCloseLink())) return false;
+  autoFlag(true);                                                       // the page connects again by itself when the radio shows up (and then probes, starting at this speed)
+  const msg = "The radio will use " + rate + " baud after it restarts. Restart the radio now. This page connects again by itself when the radio is back, and looks for it starting at " + rate + " baud.";
+  setStatus("off", "Not connected, waiting for the radio to restart"); notice(msg); cmdLog(msg);
+  return true;
+}
+$("baudSel").addEventListener("change", pcBaudChange);
+setInterval(pcSync, 1000); pcSync();
+/*PETCTL-END*/
 
 /* ------------------------------------------------------------------ mesh analyzer */
 const MTYPE = ["Request", "Response", "Direct message", "Ack", "Advert", "Channel message", "Channel data", "Anon request", "Path", "Trace", "Multipart", "Control", "?", "?", "?", "Raw"];
@@ -1462,11 +1876,12 @@ function onMeshLine(line) {
   });
   if (MESH.recs.length > 6000) MESH.recs.splice(0, MESH.recs.length - 6000);
   if (!MESH.t0) MESH.t0 = now;
-  const pp = $("meshPanel"); if (pp.hidden) { pp.hidden = false; }
+  const pp = $("meshPanel"); if (pp.hidden && !(PC.dx && !pcCap("mesh"))) { pp.hidden = false; }
   MESH.dirty = true;
 }
 function mcanvas(id) {
-  const c = $(id), w = Math.max(160, Math.round(c.getBoundingClientRect().width)), h = +c.dataset.h || 220, d = window.devicePixelRatio || 1;
+  const c = $(id), bins = +c.dataset.bins || 0, parentW = c.parentElement.getBoundingClientRect().width, w = Math.max(160, Math.round(bins ? Math.max(parentW, 42 + bins * 48) : parentW)), h = +c.dataset.h || 220, d = window.devicePixelRatio || 1;
+  c.style.width = w + "px";
   if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
   c.style.height = h + "px";
   const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h);
@@ -1475,7 +1890,7 @@ function mcanvas(id) {
 const mfmtT = (ms) => { const d = new Date(ms); return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
 function meshDraw() {
   if (MESH.paused || $("meshPanel").hidden) return;
-  const now = Date.now(), win = +$("mWin").value || 300000, from = now - win;
+  const now = Date.now(), win = +$("mWin").value || 300000, from = now - win, autoScale = $("mScale").value === "auto";
   const rx = MESH.recs.filter((r) => !r.tx && r.t >= from), txr = MESH.recs.filter((r) => r.tx && r.t >= from);
   const ink = css("--ink2"), mut = css("--muted"), grid = css("--grid"), bad = css("--bad");
   // ---- tiles
@@ -1491,16 +1906,16 @@ function meshDraw() {
     tile("Signal", aR == null ? "&ndash;" : Math.round(aR), aR == null ? "" : "dBm avg", best == null ? "nothing in the last minute" : "best " + best + " dBm") +
     tile("Clarity", aS == null ? "&ndash;" : aS.toFixed(1), aS == null ? "" : "dB SNR", MESH.cfg.sf ? "SF" + MESH.cfg.sf + " can decode down to " + (SNR_LIMIT[MESH.cfg.sf] != null ? SNR_LIMIT[MESH.cfg.sf] : "?") + " dB" : "average of the last minute") +
     tile("Noise floor", nf == null ? "&ndash;" : nf, nf == null ? "" : "dBm", aR != null && nf != null ? "signal sits " + Math.round(aR - nf) + " dB above it" : "the quiet level of the channel") +
-    tile("Channel busy", (busyRx + busyTx).toFixed(1), "%", "hearing " + busyRx.toFixed(1) + "%, sending " + busyTx.toFixed(1) + "%") +
+    tile("Observed airtime", (busyRx + busyTx).toFixed(1), "%", "heard " + busyRx.toFixed(1) + "% + sent " + busyTx.toFixed(1) + "% · not a spectrum reading") +
+    tile("Free-airtime estimate", Math.max(0, 100 - busyRx - busyTx).toFixed(1), "%", "last minute · 100% minus decoded heard + sent packet time") +
     tile("Nodes", srcs10, "heard", "different senders or repeaters, last 10 min");
-  // ---- legend
+  // ---- packet types; the coloured bars are also the composition key.
   const counts = {}; rx.forEach((r) => { counts[r.type] = (counts[r.type] || 0) + 1; });
-  const types = Object.keys(counts).map(Number).sort((a, b) => counts[b] - counts[a]);
-  $("mLegend").innerHTML = types.map((t) => '<li><span class="sw" style="background:' + mcol(t) + '"></span>' + MTYPE[t] + " " + counts[t] + "</li>").join("") + (txr.length ? '<li><span class="sw" style="background:transparent;border:2px solid ' + ink + '"></span>Sent ' + txr.length + "</li>" : "");
+  const types = Object.keys(counts).map(Number).sort($("mSort").value === "type" ? (a, b) => a - b : (a, b) => counts[b] - counts[a]);
   // ---- signal over time
   { const { g, w, h } = mcanvas("mTime"), L = 46, R = 10, T = 8, B = 24;
     let lo = -130, hi = -40;
-    if (rx.length) { const mn = Math.min.apply(null, rx.map((r) => r.rssi)), mx = Math.max.apply(null, rx.map((r) => r.rssi)); lo = Math.min(lo, Math.floor(mn / 10) * 10 - 10); hi = Math.max(hi, Math.ceil(mx / 10) * 10 + 5); }
+    if (autoScale && rx.length) { const mn = Math.min.apply(null, rx.map((r) => r.rssi)), mx = Math.max.apply(null, rx.map((r) => r.rssi)); lo = Math.floor((mn - 8) / 10) * 10; hi = Math.ceil((mx + 8) / 10) * 10; if (hi - lo < 30) { const mid = (hi + lo) / 2; lo = Math.floor((mid - 15) / 10) * 10; hi = lo + 30; } }
     const X = (t) => L + (t - from) / win * (w - L - R), Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (h - T - B);
     g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
     for (let v = Math.ceil(lo / 10) * 10; v <= hi; v += 10) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
@@ -1517,24 +1932,74 @@ function meshDraw() {
     txr.forEach((r) => { const x = X(r.t); g.beginPath(); g.moveTo(x, h - B - 9); g.lineTo(x, h - B); g.stroke(); MESH.hit.push({ x, y: h - B - 4, r }); });
     if (!rx.length) { g.fillStyle = mut; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "14px " + css("--font"); g.fillText(MESH.recs.length ? "Nothing heard in this window." : "Waiting for the radio to hear something…", w / 2, h / 2); } }
   // ---- quality map
-  { const { g, w, h } = mcanvas("mQual"), L = 40, R = 10, T = 8, B = 34, x0 = -130, x1 = -40, y0 = -25, y1 = 15;
+  { const { g, w, h } = mcanvas("mQual"), L = 40, R = 10, T = 8, B = 34;
+    let x0 = -130, x1 = -40, y0 = -25, y1 = 15;
+    if (autoScale && rx.length) {
+      const r0 = Math.min.apply(null, rx.map((r) => r.rssi)), r1 = Math.max.apply(null, rx.map((r) => r.rssi)), s0 = Math.min.apply(null, rx.map((r) => r.snr)), s1 = Math.max.apply(null, rx.map((r) => r.snr));
+      x0 = Math.floor((r0 - 8) / 10) * 10; x1 = Math.ceil((r1 + 8) / 10) * 10; if (x1 - x0 < 30) { const mid = (x0 + x1) / 2; x0 = Math.floor((mid - 15) / 10) * 10; x1 = x0 + 30; }
+      y0 = Math.floor((s0 - 3) / 5) * 5; y1 = Math.ceil((s1 + 3) / 5) * 5; if (y1 - y0 < 15) { const mid = (y0 + y1) / 2; y0 = Math.floor((mid - 7.5) / 5) * 5; y1 = y0 + 15; }
+    }
     const X = (v) => L + (v - x0) / (x1 - x0) * (w - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (h - T - B);
     g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
-    for (let v = -20; v <= 10; v += 10) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
+    const yStep = Math.max(5, Math.ceil((y1 - y0) / 4 / 5) * 5);
+    for (let v = Math.ceil(y0 / yStep) * yStep; v <= y1; v += yStep) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 6, Y(v)); }
     g.textAlign = "center"; g.textBaseline = "top";
-    for (let v = -120; v <= -50; v += 20) { g.beginPath(); g.moveTo(X(v) + .5, T); g.lineTo(X(v) + .5, h - B); g.stroke(); g.fillText(v, X(v), h - B + 6); }
+    const xStep = Math.max(10, Math.ceil((x1 - x0) / 4 / 10) * 10);
+    for (let v = Math.ceil(x0 / xStep) * xStep; v <= x1; v += xStep) { g.beginPath(); g.moveTo(X(v) + .5, T); g.lineTo(X(v) + .5, h - B); g.stroke(); g.fillText(v, X(v), h - B + 6); }
     g.fillText("signal strength (dBm)", (L + w - R) / 2, h - 12); g.save(); g.translate(10, (T + h - B) / 2); g.rotate(-Math.PI / 2); g.fillText("SNR (dB)", 0, 0); g.restore();
     const lim = SNR_LIMIT[MESH.cfg.sf]; if (lim != null) { g.strokeStyle = bad; g.lineWidth = 1.5; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(lim)); g.lineTo(w - R, Y(lim)); g.stroke(); g.setLineDash([]); }
     rx.slice(-400).forEach((r) => { g.fillStyle = mcol(r.type); g.globalAlpha = .75; g.beginPath(); g.arc(Math.max(L, Math.min(w - R, X(r.rssi))), Math.max(T, Math.min(h - B, Y(r.snr))), 3.2, 0, 6.2832); g.fill(); });
     g.globalAlpha = 1; }
   // ---- bars
-  const bar = (label, n, max, col) => '<div class="mrow"><span>' + label + '</span><div class="mtrack"><div class="mfill" style="width:' + Math.max(1, Math.round(n / (max || 1) * 100)) + "%;background:" + col + '"></div></div><em>' + n + "</em></div>";
+  const bar = (label, n, max, col, shown) => '<div class="mrow"><span>' + label + '</span><div class="mtrack"><div class="mfill" style="width:' + Math.max(1, Math.round(n / (max || 1) * 100)) + "%;background:" + col + '"></div></div><em>' + (shown == null ? n : shown) + "</em></div>";
   const tmax = types.length ? counts[types[0]] : 1;
-  $("mTypes").innerHTML = types.length ? types.map((t) => bar(MTYPE[t], counts[t], tmax, mcol(t))).join("") : '<p class="note">Nothing yet.</p>';
+  $("mTypes").innerHTML = types.length ? types.map((t) => bar(MTYPE[t], counts[t], tmax, mcol(t), counts[t] + " / " + Math.round(counts[t] / rx.length * 100) + "%")).join("") : '<p class="note">Nothing yet.</p>';
   $("mTypeNote").textContent = rx.length + " packets in this window";
+  // The pie shares the packet-type legend. Airtime is an observed estimate from decoded packet lengths.
+  { const mode = $("mComposition").value, pie = types.slice(0, 7); if (types.length > 7) pie.push(-1); const values = pie.map((t) => mode === "airtime" ? rx.filter((r) => t < 0 ? pie.indexOf(r.type) < 0 : r.type === t).reduce((n, r) => n + airtimeMs(r.len, MESH.cfg), 0) : (t < 0 ? types.slice(7).reduce((n, k) => n + counts[k], 0) : counts[t]));
+    const total = values.reduce((n, v) => n + v, 0), { g, w, h } = mcanvas("mPie"), cx = Math.min(w * .35, 120), cy = h / 2, rad = Math.min(68, h / 2 - 12); let a = -Math.PI / 2;
+    if (total) { values.forEach((v, i) => { const z = v / total * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, rad, a, a + z); g.closePath(); g.fillStyle = mcol(pie[i]); g.fill(); a += z; });
+      g.fillStyle = css("--panel"); g.beginPath(); g.arc(cx, cy, rad * .54, 0, Math.PI * 2); g.fill(); g.fillStyle = ink; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "600 15px " + css("--font-d"); g.fillText(mode === "airtime" ? (total / 1000).toFixed(1) + " s" : total, cx, cy - 8); g.font = "12px " + css("--font"); g.fillStyle = mut; g.fillText(mode === "airtime" ? "heard airtime" : "packets", cx, cy + 11);
+      // The type bars above are the legend; keep the pie itself deliberately quiet.
+    } else { g.fillStyle = mut; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("Waiting for packets…", w / 2, h / 2); }
+    $("mPieNote").textContent = mode === "airtime" ? "Decoded packet length + radio settings estimate airtime heard by this radio; it is not a spectrum measurement or a duty-cycle allowance." : "Share of decoded packets heard by this radio in the selected window.";
+  }
   const hc = [0, 0, 0, 0, 0, 0, 0]; rx.forEach((r) => { hc[Math.min(6, r.hops)]++; });
   const hm = Math.max.apply(null, hc.concat([1]));
   $("mHops").innerHTML = hc.map((n, i) => bar(i === 0 ? "direct" : i === 6 ? "6 or more" : i + (i === 1 ? " hop" : " hops"), n, hm, css("--s1"))).join("");
+  // ---- retained history: 72 fixed bins survive a clock boundary and scroll horizontally.
+  // These remain packet observations, not a measurement of all RF activity.
+  const histClock = $("mHistory").value === "clock", histBins = 72, binMs = win / 12;
+  const histTo = histClock ? Math.floor(now / binMs) * binMs + binMs : now, histFrom = histTo - histBins * binMs;
+  const histRx = MESH.recs.filter((r) => !r.tx && r.t >= histFrom && r.t < histTo);
+  $("mHistoryNote").textContent = (histClock ? "clock-aligned" : "rolling") + " " + Math.round(binMs / 1000) + " s bins; scroll for older history";
+  const trend = (id, hgt, key, label, colour) => {
+    const { g, w, h } = mcanvas(id), L = 34, R = 34, T = 8, B = 54, bins = histBins;
+    const sets = Array.from({ length: bins }, () => ({}));
+    histRx.forEach((r) => { const i = Math.max(0, Math.min(bins - 1, Math.floor((r.t - histFrom) / binMs))); const k = key(r); sets[i][k] = (sets[i][k] || 0) + 1; });
+    const tops = sets.map((b) => Object.values(b).reduce((n, v) => n + v, 0)), top = Math.max(1, ...tops), step = Math.max(1, Math.ceil(top / 4));
+    const Y = (v) => T + (1 - v / (step * 4)) * (h - T - B), bw = (w - L - R) / bins;
+    g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
+    for (let v = 0; v <= step * 4; v += step) { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v, L - 5, Y(v)); g.textAlign = "left"; g.fillText(v, w - R + 5, Y(v)); g.textAlign = "right"; }
+    sets.forEach((b, i) => { let base = 0; Object.keys(b).sort((a, z) => +a - +z).forEach((k) => { const n = b[k], y = Y(base + n); g.fillStyle = colour(+k); g.fillRect(L + i * bw + 1, y, Math.max(1, bw - 2), Y(base) - y); base += n; }); });
+    g.fillStyle = mut; g.font = "11px " + css("--font"); g.textAlign = "right"; g.textBaseline = "middle";
+    for (let i = 0; i < bins; i++) { const t = histFrom + i * binMs, x = L + (i + .5) * bw; g.save(); g.translate(x + 5, h - B + 8); g.rotate(-Math.PI / 3); g.fillText(mfmtT(t), 0, 0); g.restore(); }
+    g.textAlign = "left"; g.textBaseline = "top"; g.fillText(label, L + 4, T + 3);
+  };
+  trend("mTraffic", 210, (r) => r.type, "packets", (k) => mcol(k));
+  // Airtime uses every decoded record (heard and sent); grey is the remainder of that bin, not measured RF silence.
+  { const { g, w, h } = mcanvas("mAirtime"), L = 34, R = 34, T = 8, B = 54, bins = histBins, ms = Array(bins).fill(0);
+    MESH.recs.filter((r) => r.t >= histFrom && r.t < histTo).forEach((r) => { const i = Math.max(0, Math.min(bins - 1, Math.floor((r.t - histFrom) / binMs))); ms[i] += airtimeMs(r.len, MESH.cfg); });
+    const Y = (v) => T + (1 - v / 100) * (h - T - B), bw = (w - L - R) / bins;
+    g.strokeStyle = grid; g.fillStyle = mut; g.lineWidth = 1; g.textAlign = "right"; g.textBaseline = "middle";
+    [0, 50, 100].forEach((v) => { g.beginPath(); g.moveTo(L, Y(v) + .5); g.lineTo(w - R, Y(v) + .5); g.stroke(); g.fillText(v + "%", L - 5, Y(v)); g.textAlign = "left"; g.fillText(v + "%", w - R + 5, Y(v)); g.textAlign = "right"; });
+    ms.forEach((v, i) => { const p = Math.max(0, Math.min(100, v / binMs * 100)), x = L + i * bw + 1; g.fillStyle = grid; g.fillRect(x, T, Math.max(1, bw - 2), h - T - B); g.fillStyle = css("--s1"); g.fillRect(x, Y(p), Math.max(1, bw - 2), Y(0) - Y(p)); });
+    g.fillStyle = mut; g.font = "11px " + css("--font"); g.textAlign = "right"; g.textBaseline = "middle";
+    for (let i = 0; i < bins; i++) { const x = L + (i + .5) * bw; g.save(); g.translate(x + 5, h - B + 8); g.rotate(-Math.PI / 3); g.fillText(mfmtT(histFrom + i * binMs), 0, 0); g.restore(); }
+    g.textAlign = "left"; g.textBaseline = "top"; g.fillText("observed", L + 4, T + 3);
+    $("mAirNote").textContent = MESH.cfg.sf && MESH.cfg.bw ? "Blue is decoded packet airtime heard + sent; grey is the remaining estimate. Missed/colliding/other-radio traffic is not visible, so this is not a spectrum or compliance meter." : "Airtime estimate needs the radio's spreading factor and bandwidth.";
+  }
+  trend("mHopTrend", 180, (r) => Math.min(6, r.hops), "packets", (k) => k === 0 ? css("--s3") : css("--s1"));
   // ---- who we hear
   const by = new Map();
   rx.forEach((r) => { const k = r.id || "direct"; let e = by.get(k); if (!e) { e = { k, n: 0, last: 0, sum: 0, best: -999, snr: 0 }; by.set(k, e); } e.n++; e.last = Math.max(e.last, r.t); e.sum += r.rssi; e.best = Math.max(e.best, r.rssi); e.snr += r.snr; });
@@ -1552,6 +2017,10 @@ function meshCsv() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = "mesh-analyzer-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".csv"; document.body.appendChild(a); a.click(); a.remove();
 }
 $("mWin").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mScale").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mHistory").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mComposition").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
+$("mSort").addEventListener("change", () => { MESH.dirty = true; meshDraw(); });
 $("mPause").addEventListener("click", () => { MESH.paused = !MESH.paused; $("mPause").setAttribute("aria-pressed", MESH.paused); $("mPause").textContent = MESH.paused ? "Resume" : "Pause"; if (!MESH.paused) meshDraw(); });
 $("mCsv").addEventListener("click", meshCsv);
 $("mClear").addEventListener("click", () => { MESH.recs = []; MESH.nf = []; MESH.dirty = true; meshDraw(); });
@@ -1561,7 +2030,7 @@ $("mTime").addEventListener("mousemove", (e) => {
   if (!best) return; const r = best.r, nm = meshNameFor(r.id);
   $("mHover").textContent = mfmtT(r.t) + " · " + (r.tx ? "sent " : "") + MTYPE[r.type] + (r.tx ? "" : " · " + r.rssi + " dBm · SNR " + r.snr.toFixed(1) + " dB") + " · " + (r.hops ? r.hops + " hop" + (r.hops > 1 ? "s" : "") : "direct") + " · " + r.len + " bytes" + (r.id ? " · from " + (nm ? nm + " (" + r.id + ")" : r.id) : "");
 });
-setInterval(() => { const pp = $("petPanel"); if (pp) pp.hidden = !!(MESH.seen && Date.now() - MESH.seen < 8000 && !PET.seen && PET.asks > 3);   // a build without a pet has nothing to show there
+setInterval(() => { const pp = $("petPanel"); if (pp && !PC.dx) pp.hidden = !!(MESH.seen && Date.now() - MESH.seen < 8000 && !PET.seen && PET.asks > 3);   // a build without a pet has nothing to show there
   if ($("meshPanel").hidden) return; if (MESH.seen && Date.now() - MESH.seen > 8000) $("meshNote").textContent = "no data from the radio for a while"; else $("meshNote").textContent = "every packet this radio hears, live · LODESTAR ORION + Mesh Analyzer firmware"; meshDraw(); }, 1000);
 window.addEventListener("resize", () => { MESH.dirty = true; meshDraw(); });
 function demoMesh(D) {            // made-up packets for the sample data
@@ -1578,10 +2047,13 @@ function demoMesh(D) {            // made-up packets for the sample data
 
 function onLine(line) {
   line = line.trim();
-  if (line[0] === "{" && line.indexOf('"mesh"') === 1) { onMeshLine(line); return; }
-  if (line[0] === "{" && line.indexOf('"pet"') === 1) { onPetLine(line); return; }
-  if (line[0] === "{" && line.indexOf('"nova"') > 0) { try { const o = JSON.parse(line); if (o.found) onFound(o.found); else onFrame(o); } catch (e) { /* a half line: wait for the next */ } }
-  else if (line[0] === "#") { const t = line.slice(1).trim(); if (PET.ask && !PET.seen && /^nova \[status\|profile/.test(t)) PET.nosupport = true; else cmdLog(t); }
+  pcProbeLine(line);
+  if (line[0] === "{" && line.indexOf('"mesh"') === 1) { onMeshLine(line); pcNote(true); return; }
+  if (line[0] === "{" && (line.indexOf('"pet"') === 1 || line.indexOf('"screen"') === 1)) { onPetLine(line); if (PET.seen) pcNote(true); return; }
+  if (line[0] === "{" && line.indexOf('"contacts"') === 1) { onContactsLine(line); return; }
+  if (line[0] === "{" && (line.indexOf('"nova_ok"') === 1 || line.indexOf('"nova_error"') === 1)) { onNovaReply(line); return; }
+  if (line[0] === "{" && line.indexOf('"nova"') > 0) { try { const o = JSON.parse(line); if (o.found) onFound(o.found); else if (o.ed === "dx-pro" && o.nova && typeof o.nova === "object") pcHello(o); else { pcNote(o.ed === "orion"); onFrame(o); } } catch (e) { /* a half line: wait for the next */ } }
+  else if (line[0] === "#") { const t = line.slice(1).trim(); if (PET.ask && !PET.seen && /^nova \[status\|profile/.test(t)) PET.nosupport = true; else if (!pcReply(t)) cmdLog(t); }
 }
 
 /* ------------------------------------------------------------------ rendering */
@@ -1644,6 +2116,9 @@ function lineChart(host, o) {
   const any = o.series.some((s) => s.pts.length > 1);
   const svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": o.label });
   host.appendChild(svg);
+  const clipId = "plot-" + Math.random().toString(36).slice(2);
+  const defs = el("defs", {}, svg), clip = el("clipPath", { id: clipId }, defs);
+  el("rect", { x: L, y: T, width: W - L - R, height: H - T - B }, clip);
   const X = (x) => L + (x - o.xmin) / (o.xmax - o.xmin || 1) * (W - L - R);
   const Y = (y) => T + (1 - (y - o.ymin) / (o.ymax - o.ymin || 1)) * (H - T - B);
   o.yticks.forEach((v) => {
@@ -1654,13 +2129,14 @@ function lineChart(host, o) {
     const t = el("text", { x: X(v), y: H - 6, "text-anchor": v === o.xmin ? "start" : v === o.xmax ? "end" : "middle", "font-size": 12, fill: css("--muted") }, svg); t.textContent = o.xfmt(v);
   });
   if (!any) { const t = el("text", { x: W / 2, y: H / 2, "text-anchor": "middle", "font-size": 14, fill: css("--muted") }, svg); t.textContent = o.emptyText; return; }
+  const plot = el("g", { "clip-path": "url(#" + clipId + ")" }, svg);
   o.series.forEach((s) => {
     if (s.pts.length < 2) return;
-    el("polyline", { points: s.pts.map((p) => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" "), fill: "none", stroke: css(s.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    el("polyline", { points: s.pts.map((p) => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" "), fill: "none", stroke: css(s.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, plot);
   });
   // hover layer: a crosshair and a tooltip with every series at that moment
-  const cross = el("line", { y1: T, y2: H - B, stroke: css("--muted"), "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" }, svg);
-  const dots = o.series.map((s) => el("circle", { r: 4, fill: css(s.color), stroke: css("--panel"), "stroke-width": 2, visibility: "hidden" }, svg));
+  const cross = el("line", { y1: T, y2: H - B, stroke: css("--muted"), "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" }, plot);
+  const dots = o.series.map((s) => el("circle", { r: 4, fill: css(s.color), stroke: css("--panel"), "stroke-width": 2, visibility: "hidden" }, plot));
   const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent", style: "touch-action:pan-y" }, svg);
   const tip = $("tip");
   const move = (ev) => {
@@ -1684,19 +2160,52 @@ function lineChart(host, o) {
     tip.hidden = false;
   };
   const leave = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); dots.forEach((d) => d.setAttribute("visibility", "hidden")); };
-  hit.addEventListener("pointermove", move); hit.addEventListener("pointerleave", leave);
+  let drag = null;
+  const finishDrag = (commit) => {
+    if (!drag) return;
+    const end = drag.end;
+    drag = null; plot.removeAttribute("transform"); hit.style.cursor = "grab";
+    if (o.onPanEnd) o.onPanEnd();
+    if (commit && o.onPan) o.onPan(end);
+  };
+  hit.addEventListener("pointermove", (ev) => {
+    if (drag && o.onPan) {
+      const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+      const dx = px - drag.px;
+      drag.end = drag.baseEnd - dx / (W - L - R) * (o.xmax - o.xmin);
+      // Keep this SVG alive for the whole gesture: incoming samples are buffered until release.
+      plot.setAttribute("transform", "translate(" + dx.toFixed(1) + " 0)");
+      return;
+    }
+    move(ev);
+  });
+  hit.addEventListener("pointerleave", () => { if (!drag) leave(); });
+  if (o.onPan) {
+    hit.style.cursor = "grab";
+    hit.addEventListener("pointerdown", (ev) => { const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W; drag = { px, end: o.xmax, baseEnd: o.xmax }; hit.setPointerCapture(ev.pointerId); hit.style.cursor = "grabbing"; tip.hidden = true; if (o.onPanStart) o.onPanStart(); });
+    hit.addEventListener("pointerup", () => finishDrag(true));
+    hit.addEventListener("pointercancel", () => finishDrag(false));
+    hit.addEventListener("wheel", (ev) => { ev.preventDefault(); o.onZoom((o.xmax - o.xmin) * (ev.deltaY < 0 ? .75 : 1.333)); }, { passive: false });
+  }
 }
 
 function renderScoreChart() {
-  const h = S.hist, now = Date.now();
+  const h = S.hist, now = Date.now(), maxMinutes = 15;
+  const view = S.scoreView;
+  if (view.panning) return; // retain the current SVG and its pointer capture until release
+  view.minutes = Math.max(0.5, Math.min(maxMinutes, view.minutes));
+  view.end = Math.min(0, Math.max(-maxMinutes + view.minutes, view.end));
   const ids = []; h.forEach((x) => Object.keys(x.scores).forEach((id) => { if (ids.indexOf(id) < 0) ids.push(id); }));
   // keep the 4 that were strongest most recently, so the chart stays readable
   const last = h.length ? h[h.length - 1].scores : {};
   const shown = ids.sort((a, b) => (last[b] || 0) - (last[a] || 0)).slice(0, 4);
   const series = shown.map((id) => ({ name: id, color: colorFor(id), pts: h.filter((x) => id in x.scores).map((x) => [(x.t - now) / 60000, x.scores[id]]) }));
   $("scoreLegend").innerHTML = shown.map((id) => '<li><i style="background:var(' + colorFor(id) + ')"></i>' + esc(id) + "</li>").join("") + (ids.length > 4 ? "<li>and " + (ids.length - 4) + " weaker</li>" : "");
-  lineChart($("scoreChart"), { label: "Score of the strongest repeaters over the last 15 minutes", series, xmin: -15, xmax: 0, ymin: 0, ymax: 100,
-    yticks: [0, 25, 50, 75, 100], yfmt: (v) => String(Math.round(v)), xticks: [-15, -10, -5, 0], xfmt: (v) => (v === 0 ? "now" : Math.abs(Math.round(v)) + " min ago"), emptyText: "Collecting data. This fills in as frames arrive." });
+  const span = view.minutes, xmin = view.end - span, xticks = [xmin, xmin + span / 2, view.end];
+  lineChart($("scoreChart"), { label: "Score of the strongest repeaters over the selected time window", series, xmin, xmax: view.end, ymin: 0, ymax: 100,
+    yticks: [0, 25, 50, 75, 100], yfmt: (v) => String(Math.round(v)), xticks, xfmt: (v) => (v >= -0.05 ? "now" : Math.abs(v).toFixed(span < 2 ? 1 : 0) + " min ago"), emptyText: "Collecting data. This fills in as frames arrive.",
+    onPanStart: () => { S.scoreView.panning = true; }, onPanEnd: () => { S.scoreView.panning = false; },
+    onPan: (end) => { S.scoreView.end = end; renderScoreChart(); }, onZoom: (minutes) => { S.scoreView.minutes = minutes; renderScoreChart(); } });
 }
 
 function renderBatt(b) {
@@ -2186,7 +2695,7 @@ async function holdLines(p) { try { await p.setSignals({ dataTerminalReady: true
 async function openPort(port) {          // a radio that has just restarted takes a few seconds to show up again, so try more than once
   let err;
   for (let i = 0; i < 6; i++) {
-    try { await port.open({ baudRate: 115200 }); await holdLines(port); return; }   // leave the control lines as the system sets them: many boards stay silent unless DTR is on
+    try { await port.open({ baudRate: S.baud || 115200 }); S.openRate = S.baud || 115200; await holdLines(port); return; }   // leave the control lines as the system sets them: many boards stay silent unless DTR is on
     catch (e) { err = e; if (e.name === "InvalidStateError") { try { await port.close(); } catch (e2) { /* was not open */ } } await new Promise((r) => setTimeout(r, 1200)); }
   }
   throw err;
@@ -2199,20 +2708,24 @@ async function connect(known) {
   try {
     stopDemo();
     const kp = S.kept; S.kept = null;           // a port left open by Disconnect is picked up again as it is: reopening it would restart the radio
-    S.port = known || (kp && kp.readable && kp.writable ? kp : null) || await navigator.serial.requestPort();
+    pcProbeBegin();                             // a fresh Connect starts the probe at the speed in the list (S.baud = that speed)
+    const kpOpen = !!(kp && kp.readable && kp.writable); let kpShut = null;
+    if (kpOpen && S.openRate !== S.baud) { try { await kp.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) { /* this browser cannot set them */ } try { await kp.close(); kpShut = kp; } catch (e) { /* stays as it is */ } }   // that port is open at another speed
+    S.port = known || (kpOpen && !kpShut ? kp : null) || kpShut || await navigator.serial.requestPort();
     if (!(S.port.readable && S.port.writable)) await openPort(S.port);
-  } catch (e) { S.opening = false; S.port = null; if (e.name !== "NotFoundError") notice("Could not open the radio's USB port: " + e.message + ". Close other programs that use it (the flasher, a serial monitor) and try again. If it still fails, unplug the radio and plug it in again."); return; }
+  } catch (e) { S.opening = false; S.port = null; pcProbeStop(); if (e.name !== "NotFoundError") notice("Could not open the radio's USB port: " + e.message + ". Close other programs that use it (the flasher, a serial monitor) and try again. If it still fails, unplug the radio and plug it in again."); return; }
   S.opening = false; S.manual = false; autoFlag(true); termAdd("port opened", "ev");
   S.mode = "serial"; setStatus("waiting", "Connected, waiting for data"); $("btnConnect").textContent = "Disconnect";
   const enc = new TextEncoderStream(); S.wpipe = enc.readable.pipeTo(S.port.writable, { preventClose: true, preventAbort: true, preventCancel: true }).catch(() => {}); S.writer = enc.writable.getWriter();
   const dec = new TextDecoderStream(); S.rpipe = S.port.readable.pipeTo(dec.writable, { preventClose: true, preventAbort: true, preventCancel: true }).catch(() => {}); S.reader = dec.readable.getReader();
   MESH.asks = 0; MESH.seen = 0;
-  PET.reset(); PET.ask = true; PET.asks = 0; PET.nosupport = false; petState("Asking the radio for its pet…");
+  petWake(); PET.reset(); PET.ask = true; PET.asks = 0; PET.nosupport = false; petState("Asking the radio for its pet…"); PC.reset(); pcSync();
   let tick = 0;
   // keep asking for the analyzer: a radio that was still starting up ignores the first requests, so never give up (just ask less often when nothing answers)
   S.lastRx = Date.now(); let quiet = false;
-  S.hello = () => { if (Date.now() - S.lastRx > 12000) { if (!quiet) { quiet = true; termAdd("nothing received from the radio for 12 s", "ev"); notice("The radio is connected but is not sending anything. Wait a few seconds if it just restarted. If this stays, press the radio's reset button or unplug it and plug it back in (the Serial console under Radio diagnostics shows what it prints)."); } } else if (quiet) { quiet = false; termAdd("radio is sending again", "ev"); notice(""); } send("nova hello"); tick++; if (MESH.seen || tick <= 3 || tick % 5 === 0) send("nova mesh"); if (PET.ask) petAsk(); };
-  S.hello(); S.keep = setInterval(S.hello, 3000);
+  S.hello = () => { if (Date.now() - S.lastRx > 12000) { if (!quiet) { quiet = true; termAdd("nothing received from the radio for 12 s", "ev"); notice("The radio is connected but is not sending anything. Wait a few seconds if it just restarted. If this stays, press the radio's reset button or unplug it and plug it back in (the Serial console under Radio diagnostics shows what it prints)."); } } else if (quiet) { quiet = false; termAdd("radio is sending again", "ev"); notice(""); } send("nova hello"); tick++; if ((MESH.seen || tick <= 3 || tick % 5 === 0) && !(PC.dx && !pcCap("mesh"))) send("nova mesh"); if (PET.ask) petAsk(); };
+  S.startKeep = () => { S.hello(); S.keep = setInterval(S.hello, 3000); };
+  if (!pcProbeStart()) { S.startKeep = null; S.hello(); S.keep = setInterval(S.hello, 3000); }   // while probing, only "nova hello" is sent; the rest starts when a valid answer arrives
   let buf = "";
   try {
     for (;;) {
@@ -2223,9 +2736,11 @@ async function connect(known) {
     }
   } catch (e) { /* unplugged */ }
   await disconnect(!S.manual);
+  if (S.loopEnd) { const f = S.loopEnd; S.loopEnd = null; f(); }       // a speed change waits for this
 }
 async function disconnect(lost) {
-  clearInterval(S.keep); S.keep = null; S.hello = null;
+  clearInterval(S.keep); S.keep = null; S.hello = null; S.startKeep = null;
+  if (!S.reopening) pcProbeStop();            // the person pressed Disconnect, or the radio went away: no more probing (a probe step reopening the port keeps it going)
   const port = S.port, rd = S.reader, wr = S.writer, rp = S.rpipe, wp = S.wpipe;
   S.port = S.reader = S.writer = S.rpipe = S.wpipe = null; S.mode = "off";
   if (!lost) autoFlag(false);
@@ -2236,7 +2751,7 @@ async function disconnect(lost) {
   // Closing the port drops DTR/RTS, which restarts the radio. A manual Disconnect therefore only lets go of the streams and leaves the port open; Connect picks it up again.
   if (port && !lost && port.readable && port.writable) S.kept = port;
   else if (port) { S.kept = null; try { await port.close(); } catch (e) {} }
-  PET.ask = false; PET.asks = 0; PET.nosupport = false; PET.seen = 0; petState("Connect your radio to see your pet here.");
+  petWake(); PET.ask = false; PET.asks = 0; PET.nosupport = false; PET.seen = 0; petState("Connect your radio to see your pet here."); PC.reset(); pcSync();
   $("btnConnect").textContent = "Connect radio";
   setStatus("off", lost ? "Radio unplugged, restarting or closed" : "Not connected");
 }
@@ -2322,12 +2837,15 @@ function demoCommand(line) {
 /* ------------------------------------------------------------------ stale check, save, theme, wiring */
 setInterval(() => {
   if (S.mode === "serial") {
-    if (!S.frame) setStatus("waiting", "Connected, waiting for data");
+    if (!S.frame && !S.dxpro) setStatus("waiting", "Connected, waiting for data");
     else if (performance.now() - S.lastAt > 7000) setStatus("stale", "No data for " + Math.round((performance.now() - S.lastAt) / 1000) + " s. Is this the Bluetooth firmware?");
     else setStatus("live", "Live");
   }
 }, 1000);
 
+$("scoreZoomIn").addEventListener("click", () => { S.scoreView.minutes *= .75; renderScoreChart(); });
+$("scoreZoomOut").addEventListener("click", () => { S.scoreView.minutes *= 1.333; renderScoreChart(); });
+$("scoreReset").addEventListener("click", () => { S.scoreView = { minutes: 15, end: 0, panning: false }; renderScoreChart(); });
 $("btnConnect").addEventListener("click", () => { if (S.mode === "serial") { S.manual = true; disconnect(false); } else connect(); });
 $("btnDemo").addEventListener("click", () => { if (S.demo) { stopDemo(); } else startDemo(); $("btnDemo").textContent = S.demo ? "Stop sample data" : "Try sample data"; });
 $("btnSave").addEventListener("click", () => {
